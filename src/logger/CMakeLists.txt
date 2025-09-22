@@ -1,4 +1,4 @@
-set(TARGET_NAME logger)
+set(TARGET_NAME mdn_logger)
 
 set(TARGET_SOURCES
     "logger.c"
@@ -13,8 +13,8 @@ target_include_directories(${TARGET_NAME}
 )
 
 target_link_libraries(${TARGET_NAME}
-    mock_wrapper
-    errors
+    mdn_status
+    mdn_mock_wrapper
 )
 
 cmake_language(CALL ${PROJECT_NAME}_set_target_c_compiler_flags ${TARGET_NAME})

@@ -17,8 +17,10 @@ endif()
 
 target_link_libraries(${TARGET_NAME}
     GTest::gmock
-    mock_wrapper
-    logger
+    mdn_gtest_extension
+    mdn_mock_wrapper
+    mdn_standard_streams_redirection
+    mdn_logger
 )
 
 cmake_language(CALL ${PROJECT_NAME}_set_target_cpp_compiler_flags ${TARGET_NAME})

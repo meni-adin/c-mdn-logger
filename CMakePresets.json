@@ -7,7 +7,7 @@
             "generator": "Ninja",
             "cacheVariables": {
                 "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
-                "C_LOGGER_ENABLE_TESTS": "ON"
+                "MDN_LOGGER_ENABLE_TESTS": "ON"
             }
         },
         {
@@ -15,14 +15,7 @@
             "hidden": true,
             "inherits": ["config-common"],
             "cacheVariables": {
-                "C_LOGGER_SAFE_MODE": {
-                    "type": "BOOL",
-                    "value": "ON"
-                },
-                "MW_ENABLE_MOCKING": {
-                    "type": "BOOL",
-                    "value": "ON"
-                },
+                "MDN_LOGGER_SAFE_MODE": "ON",
                 "CMAKE_BUILD_TYPE": "Debug"
             }
         },
@@ -31,10 +24,7 @@
             "hidden": true,
             "inherits": ["config-common"],
             "cacheVariables": {
-                "C_LOGGER_SAFE_MODE": {
-                    "type": "BOOL",
-                    "value": "OFF"
-                },
+                "MDN_LOGGER_SAFE_MODE": "OFF",
                 "CMAKE_BUILD_TYPE": "Release"
             }
         },
@@ -43,10 +33,7 @@
             "hidden": true,
             "inherits": ["config-common"],
             "cacheVariables": {
-                "SANITIZED_BUILD": {
-                    "type": "BOOL",
-                    "value": "ON"
-                }
+                "MDN_LOGGER_SANITIZED_BUILD": "ON"
             }
         },
         {
@@ -54,10 +41,7 @@
             "hidden": true,
             "inherits": ["config-common"],
             "cacheVariables": {
-                "SANITIZED_BUILD": {
-                    "type": "BOOL",
-                    "value": "OFF"
-                }
+                "MDN_LOGGER_SANITIZED_BUILD": "OFF"
             }
         },
         {

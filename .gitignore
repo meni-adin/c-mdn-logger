@@ -1,15 +1,8 @@
-# build directory
-build
-
-# mac-os system files
-.DS_Store
-
-# VS code settings directory
-.vscode
-!.vscode/launch.json
-
-# python cache
+# ignore
 __pycache__
+.DS_Store
+/_notes.md
+/.vscode
+/build
 
-# Notes file
-_notes.md
+# except
