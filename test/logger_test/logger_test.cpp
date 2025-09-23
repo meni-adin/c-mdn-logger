@@ -3,6 +3,10 @@
 #include "logger.h"  // Has to be included before "mock_wrapper.h"
 // NO_LINT_END
 
+#ifdef _WIN32
+# define _CRT_SECURE_NO_WARNINGS
+#endif
+
 #include <array>
 #include <chrono>
 #include <filesystem>
@@ -228,7 +232,7 @@ protected:
 
         for (const auto outputFile : outputFiles) {
             OutputFileInfo &outputFileRef  = outputFilesInfo[static_cast<std::size_t>(outputFile)];
-            outputFileRef.path             = testOutputFilesPath;
+            outputFileRef.path             = testOutputFilesPath.string();
             outputFileRef.path            += "_";
             outputFileRef.path            += outputFileRef.suffix;
             outputFileRef.path            += ".log";
