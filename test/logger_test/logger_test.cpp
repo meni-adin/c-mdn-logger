@@ -365,6 +365,7 @@ protected:
             OutputFileInfo &outputFileRef    = outputFilesInfo[static_cast<std::size_t>(outputFile)];
             auto            binaryFileReader = BinaryFileReader(outputFileRef.path);
             ASSERT_NO_FATAL_FAILURE(binaryFileReader.verifyOpen());
+            timePointPrev = std::chrono::system_clock::time_point{};
             ASSERT_NO_FATAL_FAILURE(verifyLogLinesForLogFile(binaryFileReader, outputFileRef, logLines));
         }
     }
