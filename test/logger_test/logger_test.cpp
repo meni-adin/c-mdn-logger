@@ -3,6 +3,7 @@
 #include "logger.h"  // Has to be included before "mock_wrapper.h"
 // NO_LINT_END
 
+#include <array>
 #include <chrono>
 #include <filesystem>
 #include <format>
