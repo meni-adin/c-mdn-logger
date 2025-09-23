@@ -103,6 +103,9 @@ function(${PROJECT_NAME}_set_target_cpp_compiler_flags target)
             /wd5045
             /wd5072
         )
+        target_compile_definitions(${target} PRIVATE
+            _CRT_SECURE_NO_WARNINGS
+        )
     else()
         message(FATAL_ERROR "Unknown C++ compiler: ${CMAKE_CXX_COMPILER_ID}")
     endif()

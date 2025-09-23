@@ -3,10 +3,6 @@
 #include "logger.h"  // Has to be included before "mock_wrapper.h"
 // NO_LINT_END
 
-#ifdef _WIN32
-# define _CRT_SECURE_NO_WARNINGS
-#endif
-
 #include <array>
 #include <chrono>
 #include <filesystem>
@@ -349,9 +345,6 @@ protected:
         ASSERT_NO_FATAL_FAILURE(verifyLogLevel(matches, loggingFormat, expectedLogLine, actualLogLine));
         ASSERT_NO_FATAL_FAILURE(verifyFunctionName(matches, loggingFormat, actualLogLine));
         ASSERT_NO_FATAL_FAILURE(verifyMessage(matches, loggingFormat, expectedLogLine, actualLogLine));
-    }
-
-    void verifyLogLineFormatScreen(const std::string &line, const mdn_Logger_loggingFormat_t loggingFormat, const std::string &message) {
     }
 
     void verifyLogLinesForLogFile(BinaryFileReader &binaryFileReader, const OutputFileInfo &outputFileRef, const std::vector<LogLine> &logLines) {
