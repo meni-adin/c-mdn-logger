@@ -29,9 +29,9 @@ namespace fs = std::filesystem;
 #undef MDN_LOGGER_FUNC_NAME
 #define MDN_LOGGER_FUNC_NAME testFullName.c_str()
 
-#define TEST_ANSI_ESC "\033"
+#define TEST_ANSI_ESC         "\033"
 #define TEST_ANSI_PARAM_BEGIN "["
-#define TEST_ANSI_PARAM_END "m"
+#define TEST_ANSI_PARAM_END   "m"
 #define TEST_ANSI_COLOR(code) TEST_ANSI_ESC TEST_ANSI_PARAM_BEGIN code TEST_ANSI_PARAM_END
 
 enum class OutputFiles {
@@ -44,10 +44,10 @@ enum class OutputFiles {
 
 struct FormatRegexIndices {
     std::optional<size_t> dateIndex;
-    size_t timeIndex;
+    size_t                timeIndex;
     std::optional<size_t> logLevelIndex;
-    size_t functionIndex;
-    size_t messageIndex;
+    size_t                functionIndex;
+    size_t                messageIndex;
     std::optional<size_t> colorPrefixIndex;
     std::optional<size_t> colorSuffixIndex;
 };
@@ -113,25 +113,23 @@ protected:
     static inline std::regex regexFormatForFile;
     static inline std::regex regexFormatForScreen;
 
-    static inline std::vector<std::regex> loggingFormatToRegexMap;
-    static inline std::vector<FormatRegexIndices> loggingFormatToIndicesMap;
-    static constexpr std::array<const char*, MDN_LOGGER_LOGGING_LEVEL_COUNT> logLevelToStringMap = {
+    static inline std::vector<std::regex>                                     loggingFormatToRegexMap;
+    static inline std::vector<FormatRegexIndices>                             loggingFormatToIndicesMap;
+    static constexpr std::array<const char *, MDN_LOGGER_LOGGING_LEVEL_COUNT> logLevelToStringMap = {
         "DEBUG",
         "INFO",
         "WARNING",
         "ERROR",
-        "CRITICAL"
-    };
+        "CRITICAL"};
 
-    static constexpr std::array<const char*, MDN_LOGGER_LOGGING_LEVEL_COUNT> logLevelToAnsiColorMap = {
+    static constexpr std::array<const char *, MDN_LOGGER_LOGGING_LEVEL_COUNT> logLevelToAnsiColorMap = {
         TEST_ANSI_COLOR("90"),
         TEST_ANSI_COLOR("0"),
         TEST_ANSI_COLOR("33"),
         TEST_ANSI_COLOR("31"),
-        TEST_ANSI_COLOR("35")
-    };
+        TEST_ANSI_COLOR("35")};
 
-    static constexpr const char* ansiResetColor = TEST_ANSI_COLOR("0");
+    static constexpr const char *ansiResetColor = TEST_ANSI_COLOR("0");
 
     std::chrono::system_clock::time_point timePointPrev, timePointCur;
 
@@ -229,10 +227,10 @@ protected:
 
         for (const auto outputFile : outputFiles) {
             OutputFileInfo &outputFileRef  = outputFilesInfo[static_cast<std::size_t>(outputFile)];
-            outputFileRef.path                 = testOutputFilesPath;
-            outputFileRef.path                += "_";
-            outputFileRef.path                += outputFileRef.suffix;
-            outputFileRef.path                += ".log";
+            outputFileRef.path             = testOutputFilesPath;
+            outputFileRef.path            += "_";
+            outputFileRef.path            += outputFileRef.suffix;
+            outputFileRef.path            += ".log";
             outputFileRef.fileToRead       = fopen(outputFileRef.path.c_str(), "w");
             ASSERT_NE(outputFileRef.fileToRead, nullptr)
                 << "Failed to open file for writing: " << outputFileRef.path << "\n";
@@ -259,10 +257,10 @@ protected:
 
     void verifyTimestamp(const std::smatch &matches, mdn_Logger_loggingFormat_t loggingFormat) {
         const FormatRegexIndices &indices = loggingFormatToIndicesMap[loggingFormat];
-        std::string time;
-        std::string date;
-        struct tm tm = {};
-        int milliseconds;
+        std::string               time;
+        std::string               date;
+        struct tm                 tm = {};
+        int                       milliseconds;
 
         time = matches[indices.timeIndex].str();
         if (sscanf(time.c_str(), "%d:%d:%d.%d", &tm.tm_hour, &tm.tm_min, &tm.tm_sec, &milliseconds) != 4) {
@@ -277,15 +275,15 @@ protected:
             tm.tm_year -= 1900;  // Years since 1900
             tm.tm_mon  -= 1;     // Months are 0-11
         } else {
-            auto now = std::chrono::system_clock::now();
-            auto time_t_now = std::chrono::system_clock::to_time_t(now);
+            auto       now        = std::chrono::system_clock::now();
+            auto       time_t_now = std::chrono::system_clock::to_time_t(now);
             struct tm *current_tm = std::localtime(&time_t_now);
-            tm.tm_year = current_tm->tm_year;
-            tm.tm_mon = current_tm->tm_mon;
-            tm.tm_mday = current_tm->tm_mday;
+            tm.tm_year            = current_tm->tm_year;
+            tm.tm_mon             = current_tm->tm_mon;
+            tm.tm_mday            = current_tm->tm_mday;
         }
 
-        auto tp = std::chrono::system_clock::from_time_t(std::mktime(&tm));
+        auto tp      = std::chrono::system_clock::from_time_t(std::mktime(&tm));
         timePointCur = tp + std::chrono::milliseconds(milliseconds);
 
         // Note: Very rare edge case - tests running at midnight might show
@@ -305,7 +303,7 @@ protected:
         const FormatRegexIndices &indices = loggingFormatToIndicesMap[loggingFormat];
 
         if (indices.logLevelIndex.has_value()) {
-            std::string actualLogLevel = matches[indices.logLevelIndex.value()].str();
+            std::string        actualLogLevel   = matches[indices.logLevelIndex.value()].str();
             const std::string &expectedLogLevel = logLevelToStringMap[expectedLogLine.loggingLevel];
             ASSERT_EQ(actualLogLevel, expectedLogLevel) << "Log level mismatch in line: " << actualLogLine;
         } else if (indices.colorPrefixIndex.has_value() && indices.colorSuffixIndex.has_value()) {
@@ -321,7 +319,7 @@ protected:
     void verifyFunctionName(const std::smatch &matches, mdn_Logger_loggingFormat_t loggingFormat, const std::string &actualLogLine) {
         const FormatRegexIndices &indices = loggingFormatToIndicesMap[loggingFormat];
 
-        std::string actualFunction = matches[indices.functionIndex].str();
+        std::string actualFunction   = matches[indices.functionIndex].str();
         std::string expectedFunction = testFullName;
         ASSERT_EQ(actualFunction, expectedFunction) << "Function name mismatch in line: " << actualLogLine;
     }
@@ -340,7 +338,7 @@ protected:
         format = loggingFormatToRegexMap[loggingFormat];
 
         ASSERT_EQ(std::regex_match(actualLogLine, matches, format), true) << "Line format isn't valid:\n"
-                                                                 << actualLogLine;
+                                                                          << actualLogLine;
 
         ASSERT_NO_FATAL_FAILURE(verifyTimestamp(matches, loggingFormat));
         ASSERT_NO_FATAL_FAILURE(verifyLogLevel(matches, loggingFormat, expectedLogLine, actualLogLine));
@@ -364,8 +362,8 @@ protected:
 
     void verifyLogFiles(const std::vector<LogLine> &logLines, const std::vector<OutputFiles> &outputFiles) {
         for (const auto outputFile : outputFiles) {
-            OutputFileInfo &outputFileRef = outputFilesInfo[static_cast<std::size_t>(outputFile)];
-            auto binaryFileReader = BinaryFileReader(outputFileRef.path);
+            OutputFileInfo &outputFileRef    = outputFilesInfo[static_cast<std::size_t>(outputFile)];
+            auto            binaryFileReader = BinaryFileReader(outputFileRef.path);
             ASSERT_NO_FATAL_FAILURE(binaryFileReader.verifyOpen());
             ASSERT_NO_FATAL_FAILURE(verifyLogLinesForLogFile(binaryFileReader, outputFileRef, logLines));
         }
@@ -392,25 +390,23 @@ public:
 
         // FILE format: (date) (time) (level) (function) | (message)
         loggingFormatToIndicesMap[MDN_LOGGER_LOGGING_FORMAT_FILE] = {
-            .dateIndex = 1,
-            .timeIndex = 2,
-            .logLevelIndex = 3,
-            .functionIndex = 4,
-            .messageIndex = 5,
+            .dateIndex        = 1,
+            .timeIndex        = 2,
+            .logLevelIndex    = 3,
+            .functionIndex    = 4,
+            .messageIndex     = 5,
             .colorPrefixIndex = std::nullopt,
-            .colorSuffixIndex = std::nullopt
-        };
+            .colorSuffixIndex = std::nullopt};
 
         // SCREEN format: (color_prefix) (time) (function) | (message) (color_suffix)
         loggingFormatToIndicesMap[MDN_LOGGER_LOGGING_FORMAT_SCREEN] = {
-            .dateIndex = std::nullopt,
-            .timeIndex = 2,
-            .logLevelIndex = std::nullopt,
-            .functionIndex = 3,
-            .messageIndex = 4,
+            .dateIndex        = std::nullopt,
+            .timeIndex        = 2,
+            .logLevelIndex    = std::nullopt,
+            .functionIndex    = 3,
+            .messageIndex     = 4,
             .colorPrefixIndex = 1,
-            .colorSuffixIndex = 5
-        };
+            .colorSuffixIndex = 5};
     }
 };
 

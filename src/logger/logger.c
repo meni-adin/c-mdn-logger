@@ -159,11 +159,15 @@ static void mdn_Logger_printTimestamp(FILE *stream, bool includeDate) {
     const char    *timestampStart  = includeDate ? timestampBuf : timestampBuf + 11;
     int            usecToMsecDenom = 1000;
 
-    (void)gettimeofday(&tv, NULL);
+    if (gettimeofday(&tv, NULL) != 0) {
+        tv.tv_sec  = 0;
+        tv.tv_usec = 0;
+    }
     tm_info = localtime(&tv.tv_sec);
     strftime(timestampBuf, sizeof(timestampBuf), "%Y-%m-%d %H:%M:%S", tm_info);
 
-    (void)fprintf(stream, "%s.%03d ", timestampStart, tv.tv_usec / usecToMsecDenom);
+    // Safe cast: microseconds/1000 gives milliseconds (0-999), fits in int
+    (void)fprintf(stream, "%s.%03d ", timestampStart, (int)(tv.tv_usec / usecToMsecDenom));
 #elif defined _WIN32
     SYSTEMTIME st;
 
@@ -185,7 +189,7 @@ static void mdn_Logger_printSeparator(FILE *stream) {
     fprintf(stream, "| ");
 }
 
-static void mdn_mdn_Logger_logToScreen(mdn_Logger_logToStreamArguments_t *logToStreamArguments) {
+static void mdn_Logger_logToScreen(mdn_Logger_logToStreamArguments_t *logToStreamArguments) {
     FILE *stream = g_Logger_internalState->streamsArr[logToStreamArguments->streamIndex].stream;
 
     mdn_Logger_setColor(stream, g_mdn_Logger_loggingLevelToColorMap[logToStreamArguments->loggingLevel]);
@@ -197,7 +201,7 @@ static void mdn_mdn_Logger_logToScreen(mdn_Logger_logToStreamArguments_t *logToS
     (void)fprintf(stream, "\n");
 }
 
-static void mdn_mdn_Logger_logToFile(mdn_Logger_logToStreamArguments_t *logToStreamArguments) {
+static void mdn_Logger_logToFile(mdn_Logger_logToStreamArguments_t *logToStreamArguments) {
     FILE *stream = g_Logger_internalState->streamsArr[logToStreamArguments->streamIndex].stream;
 
     mdn_Logger_printTimestamp(stream, true);
@@ -210,8 +214,8 @@ static void mdn_mdn_Logger_logToFile(mdn_Logger_logToStreamArguments_t *logToStr
 
 typedef void (*mdn_Logger_logPrintFunc)(mdn_Logger_logToStreamArguments_t *);
 static mdn_Logger_logPrintFunc g_mdn_Logger_logFormatToFuncMap[] = {
-    [MDN_LOGGER_LOGGING_FORMAT_SCREEN] = mdn_mdn_Logger_logToScreen,
-    [MDN_LOGGER_LOGGING_FORMAT_FILE]   = mdn_mdn_Logger_logToFile,
+    [MDN_LOGGER_LOGGING_FORMAT_SCREEN] = mdn_Logger_logToScreen,
+    [MDN_LOGGER_LOGGING_FORMAT_FILE]   = mdn_Logger_logToFile,
 };
 
 void mdn_Logger_log(mdn_Logger_loggingLevel_t loggingLevel, const char *file, int line, const char *funcName, const char *format, ...) {
@@ -230,10 +234,11 @@ void mdn_Logger_log(mdn_Logger_loggingLevel_t loggingLevel, const char *file, in
             continue;
         }
         va_start(args, format);
+        va_copy(logToStreamArguments.args, args);
         logToStreamArguments.streamIndex = idx;
-        logToStreamArguments.args        = args;
         logPrintFunc                     = g_mdn_Logger_logFormatToFuncMap[g_Logger_internalState->streamsArr[idx].loggingFormat];
         logPrintFunc(&logToStreamArguments);
+        va_end(logToStreamArguments.args);
         va_end(args);
     }
 }
