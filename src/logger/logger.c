@@ -9,7 +9,7 @@
 #if (defined __APPLE__) || (defined __linux__)
 # include <sys/time.h>
 #elif defined _WIN32
-# include <windows.h>
+# include <Windows.h>
 #endif  // OS
 
 #include "mdn/mock_wrapper.h"
@@ -76,7 +76,7 @@ static mdn_Logger_loggingColor_t g_mdn_Logger_loggingLevelToColorMap[] = {
     [MDN_LOGGER_LOGGING_LEVEL_CRITICAL] = LOGGING_COLOR_MAGENTA,
 };
 
-const char *g_Logger_colorToTerminalColorMap[] = {
+static const char *g_Logger_colorToTerminalColorMap[] = {
     [LOGGING_COLOR_GRAY]    = LOGGER_TERMINAL_COLOR_GRAY,
     [LOGGING_COLOR_RESET]   = LOGGER_TERMINAL_COLOR_RESET,
     [LOGGING_COLOR_YELLOW]  = LOGGER_TERMINAL_COLOR_YELLOW,
@@ -148,48 +148,48 @@ mdn_Status_t mdn_Logger_addOutputStream(mdn_Logger_StreamConfig_t streamConfig) 
 }
 
 static void mdn_Logger_setColor(FILE *stream, mdn_Logger_loggingColor_t color) {
-    fprintf(stream, "%s", g_Logger_colorToTerminalColorMap[color]);
+    (void)fprintf(stream, "%s", g_Logger_colorToTerminalColorMap[color]);
 }
 
 static void mdn_Logger_printTimestamp(FILE *stream, bool includeDate) {
 #if (defined __APPLE__) || (defined __linux__)
-    struct timeval tv;
+    struct timeval timeValue;
     struct tm     *tm_info;
     char           timestampBuf[10 + 1 + 8 + 1];  // 10(date: YYYY-MM-DD) + 1(space) + 8(time: HH:MM:SS) + 1(null-terminator)
     const char    *timestampStart  = includeDate ? timestampBuf : timestampBuf + 11;
     int            usecToMsecDenom = 1000;
 
-    if (gettimeofday(&tv, NULL) != 0) {
-        tv.tv_sec  = 0;
-        tv.tv_usec = 0;
+    if (gettimeofday(&timeValue, NULL) != 0) {
+        timeValue.tv_sec  = 0;
+        timeValue.tv_usec = 0;
     }
-    tm_info = localtime(&tv.tv_sec);
+    tm_info = localtime(&timeValue.tv_sec);
     strftime(timestampBuf, sizeof(timestampBuf), "%Y-%m-%d %H:%M:%S", tm_info);
 
     // Safe cast: microseconds/1000 gives milliseconds (0-999), fits in int
-    (void)fprintf(stream, "%s.%03d ", timestampStart, (int)(tv.tv_usec / usecToMsecDenom));
+    (void)fprintf(stream, "%s.%03d ", timestampStart, (int)(timeValue.tv_usec / usecToMsecDenom));
 #elif defined _WIN32
-    SYSTEMTIME st;
+    SYSTEMTIME systemTime;
 
-    GetLocalTime(&st);
+    GetLocalTime(&systemTime);
 
     if (includeDate) {
-        fprintf(stream, "%04d-%02d-%02d ", st.wYear, st.wMonth, st.wDay);
+        (void)fprintf(stream, "%04d-%02d-%02d ", systemTime.wYear, systemTime.wMonth, systemTime.wDay);
     }
-    fprintf(stream, "%02d:%02d:%02d.%03d ", st.wHour, st.wMinute, st.wSecond, st.wMilliseconds);
+    (void)fprintf(stream, "%02d:%02d:%02d.%03d ", systemTime.wHour, systemTime.wMinute, systemTime.wSecond, systemTime.wMilliseconds);
 #endif  // OS
 }
 
 static void mdn_Logger_printLoggingLevel(FILE *stream, mdn_Logger_loggingLevel_t loggingLevel) {
-    fprintf(stream, "%-8s ", g_mdn_Logger_logLevelToStrMap[loggingLevel]);
+    (void)fprintf(stream, "%-8s ", g_mdn_Logger_logLevelToStrMap[loggingLevel]);
 }
 
 static void mdn_Logger_printFuncName(FILE *stream, const char *funcName) {
-    fprintf(stream, "%-20s ", funcName);
+    (void)fprintf(stream, "%-20s ", funcName);
 }
 
 static void mdn_Logger_printSeparator(FILE *stream) {
-    fprintf(stream, "| ");
+    (void)fprintf(stream, "| ");
 }
 
 static void mdn_Logger_logToScreen(mdn_Logger_logToStreamArguments_t *logToStreamArguments) {
