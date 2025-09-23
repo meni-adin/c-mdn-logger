@@ -10,7 +10,7 @@
 #include <fstream>
 #include <gmock/gmock.h>
 #include <iostream>
-#include <limits.h>
+#include <climits>
 #include <optional>
 #include <regex>
 
@@ -45,10 +45,10 @@ enum class OutputFiles {
 
 struct FormatRegexIndices {
     std::optional<size_t> dateIndex;
-    size_t                timeIndex;
+    size_t                timeIndex = SIZE_MAX;
     std::optional<size_t> logLevelIndex;
-    size_t                functionIndex;
-    size_t                messageIndex;
+    size_t                functionIndex = SIZE_MAX;
+    size_t                messageIndex = SIZE_MAX;
     std::optional<size_t> colorPrefixIndex;
     std::optional<size_t> colorSuffixIndex;
 };
@@ -56,14 +56,23 @@ struct FormatRegexIndices {
 class BinaryFileReader {
 public:
     explicit BinaryFileReader(const fs::path &filename) : filename_(filename) {
-        file_.open(filename, std::ios::in | std::ios::binary);
+        file_.open(filename, std::ios::in | std::ios::binary);  // NOLINT(hicpp-signed-bitwise99)
     }
 
-    ~BinaryFileReader() {
+    ~BinaryFileReader() noexcept {
         if (file_.is_open()) {
-            file_.close();
+            try {
+                file_.close();
+            } catch (...) {
+                // Ignore exceptions in destructor to prevent std::terminate
+            }
         }
     }
+
+    BinaryFileReader(const BinaryFileReader&) = delete;
+    BinaryFileReader& operator=(const BinaryFileReader&) = delete;
+    BinaryFileReader(BinaryFileReader&&) = default;
+    BinaryFileReader& operator=(BinaryFileReader&&) = default;
 
     void verifyOpen() {
         ASSERT_EQ(file_.is_open(), true) << "Error: Could not open file " << filename_;
@@ -71,26 +80,26 @@ public:
 
     bool getLine(std::string &line) {
         line.clear();
-        char ch;
+        char curChar;
         bool hasData = false;
 
         if (!file_.is_open() || file_.eof()) {
             return false;
         }
 
-        while (file_.get(ch)) {
-            if (ch == '\r') {
+        while (file_.get(curChar)) {
+            if (curChar == '\r') {
                 if (file_.peek() == '\n') {
                     file_.get();
                     return true;
                 } else {
-                    line    += ch;
+                    line    += curChar;
                     hasData  = true;
                 }
-            } else if (ch == '\n') {
+            } else if (curChar == '\n') {
                 return true;
             } else {
-                line    += ch;
+                line    += curChar;
                 hasData  = true;
             }
         }
