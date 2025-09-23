@@ -116,19 +116,19 @@ protected:
 
     static inline std::vector<std::regex>                                     loggingFormatToRegexMap;
     static inline std::vector<FormatRegexIndices>                             loggingFormatToIndicesMap;
-    static constexpr std::array<const char *, MDN_LOGGER_LOGGING_LEVEL_COUNT> logLevelToStringMap = {
+    static constexpr std::array<const char *, MDN_LOGGER_LOGGING_LEVEL_COUNT> logLevelToStringMap = {{
         "DEBUG",
         "INFO",
         "WARNING",
         "ERROR",
-        "CRITICAL"};
+        "CRITICAL"}};
 
-    static constexpr std::array<const char *, MDN_LOGGER_LOGGING_LEVEL_COUNT> logLevelToAnsiColorMap = {
+    static constexpr std::array<const char *, MDN_LOGGER_LOGGING_LEVEL_COUNT> logLevelToAnsiColorMap = {{
         TEST_ANSI_COLOR("90"),
         TEST_ANSI_COLOR("0"),
         TEST_ANSI_COLOR("33"),
         TEST_ANSI_COLOR("31"),
-        TEST_ANSI_COLOR("35")};
+        TEST_ANSI_COLOR("35")}};
 
     static constexpr const char *ansiResetColor = TEST_ANSI_COLOR("0");
 
@@ -174,13 +174,13 @@ protected:
     }
 
     using LogFuncCallback = void (LoggerTest::*)(const std::string &);
-    std::array<LogFuncCallback, MDN_LOGGER_LOGGING_LEVEL_COUNT> logFunctions{
+    std::array<LogFuncCallback, MDN_LOGGER_LOGGING_LEVEL_COUNT> logFunctions{{
         &LoggerTest::logDebug,
         &LoggerTest::logInfo,
         &LoggerTest::logWarning,
         &LoggerTest::logError,
         &LoggerTest::logCritical,
-    };
+    }};
 
     void SetUp() override {
         mWMock = std::make_unique<MWMock>();
