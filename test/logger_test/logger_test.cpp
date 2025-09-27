@@ -34,14 +34,16 @@ constexpr int YEAR_OFFSET  = 1900;
 constexpr int MONTH_OFFSET = 1;
 
 // Thread-safe safeLocalTime helper: use localtime_r on POSIX, localtime_s on Windows.
-struct tm safeLocalTime(std::time_t time) {
-    struct tm result{};
+void safeLocalTime(std::time_t time, struct tm &result) {
 #if defined(_WIN32)
-    localtime_s(&result, &time);
+    if (localtime_s(&result, &time) != 0) {
+        FAIL() << "localtime_s failed for time: " << time;
+    }
 #else
-    localtime_r(&time, &result);
+    if (localtime_r(&time, &result) == nullptr) {
+        FAIL() << "localtime_r failed for time: " << time;
+    }
 #endif
-    return result;
 }
 }  // namespace
 
@@ -130,9 +132,9 @@ private:
         try {
             fileStream.close();
         } catch (const std::exception &exception) {
-            (void)std::fprintf(stderr, "Exception in destructor: %s\n", exception.what());
+            (void)std::fprintf(stderr, "Exception in destructor: %s\n", exception.what());  // NOLINT(hicpp-vararg)
         } catch (...) {
-            (void)std::fprintf(stderr, "Unknown exception in destructor\n");
+            (void)std::fprintf(stderr, "Unknown exception in destructor\n");                // NOLINT(hicpp-vararg)
         }
     }
 
@@ -313,9 +315,10 @@ protected:
             parsedLocalTime.tm_year -= YEAR_OFFSET;   // Years since 1900
             parsedLocalTime.tm_mon  -= MONTH_OFFSET;  // Months are 0-11
         } else {
-            auto       now          = std::chrono::system_clock::now();
-            auto       time_t_now   = std::chrono::system_clock::to_time_t(now);
-            const auto currentTm    = safeLocalTime(time_t_now);
+            auto      now      = std::chrono::system_clock::now();
+            auto      timetNow = std::chrono::system_clock::to_time_t(now);
+            struct tm currentTm;
+            ASSERT_NO_FATAL_FAILURE(safeLocalTime(timetNow, currentTm));
             parsedLocalTime.tm_year = currentTm.tm_year;
             parsedLocalTime.tm_mon  = currentTm.tm_mon;
             parsedLocalTime.tm_mday = currentTm.tm_mday;
