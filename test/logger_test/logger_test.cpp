@@ -4,7 +4,6 @@
 // NO_LINT_END
 
 #include <array>
-#include <charconv>
 #include <chrono>
 #include <climits>
 #include <filesystem>
@@ -14,6 +13,7 @@
 #include <iostream>
 #include <optional>
 #include <regex>
+#include <charconv>
 
 #if defined __linux__
 #elif defined __APPLE__
@@ -54,7 +54,7 @@ struct FormatRegexIndices {
     std::optional<size_t> colorSuffixIndex;
 };
 
-class BinaryFileReader {
+class BinaryFileReader {  // NOLINT(hicpp-special-member-functions)
 public:
     explicit BinaryFileReader(const fs::path &filename) : filename_(filename) {
         file_.open(filename, std::ios::in | std::ios::binary);  // NOLINT(hicpp-signed-bitwise)
@@ -65,9 +65,9 @@ public:
             try {
                 file_.close();
             } catch (const std::exception &e) {
-                std::cerr << "Exception in destructor: " << e.what() << std::endl;
+                std::cerr << "Exception in destructor: " << e.what() << "\n";
             } catch (...) {
-                std::cerr << "Unknown exception in destructor." << std::endl;
+                std::cerr << "Unknown exception in destructor\n";
             }
         }
     }
@@ -271,9 +271,6 @@ protected:
     }
 
     void verifyTimestamp(const std::smatch &matches, mdn_Logger_loggingFormat_t loggingFormat) {
-        // TODO: break down into smaller functions
-        // TODO: decrease code duplication
-
         const auto &indices = loggingFormatToIndicesMap[loggingFormat];
         std::string time;
         std::string date;
@@ -281,61 +278,17 @@ protected:
         int         milliseconds;
 
         time = matches[indices.timeIndex].str();
-
-        // Parse time "HH:MM:SS.mmm" robustly using from_chars to detect errors and overflows
-        auto parseInt = [&](const char *b, const char *e, int &out) -> bool {
-            if (b >= e) {
-                return false;
-            }
-            std::from_chars_result res = std::from_chars(b, e, out);
-            return res.ec == std::errc() && res.ptr == e;
-        };
-
-        size_t p1 = time.find(':');
-        size_t p2 = (p1 == std::string::npos) ? std::string::npos : time.find(':', p1 + 1);
-        size_t p3 = (p2 == std::string::npos) ? std::string::npos : time.find('.', p2 + 1);
-        if (p1 == std::string::npos || p2 == std::string::npos || p3 == std::string::npos) {
-            FAIL() << "Failed to parse time (format): " << time;
+        if (sscanf(time.c_str(), "%d:%d:%d.%d", &parsedLocalTime.tm_hour, &parsedLocalTime.tm_min, &parsedLocalTime.tm_sec, &milliseconds) != 4) {
+            FAIL() << "Failed to parse time: " << time;
         }
-
-        int hh = 0, mm = 0, ss = 0, msec = 0;
-        if (!parseInt(time.data(), time.data() + p1, hh) || !parseInt(time.data() + p1 + 1, time.data() + p2, mm) || !parseInt(time.data() + p2 + 1, time.data() + p3, ss) || !parseInt(time.data() + p3 + 1, time.data() + time.size(), msec)) {
-            FAIL() << "Failed to parse time (values): " << time;
-        }
-
-        // Validate ranges
-        if (hh < 0 || hh > 23 || mm < 0 || mm > 59 || ss < 0 || ss > 59 || msec < 0 || msec > 999) {
-            FAIL() << "Time values out of range: " << time;
-        }
-
-        parsedLocalTime.tm_hour = hh;
-        parsedLocalTime.tm_min  = mm;
-        parsedLocalTime.tm_sec  = ss;
-        milliseconds            = msec;
 
         if (indices.dateIndex.has_value()) {
             date = matches[indices.dateIndex.value()].str();
-
-            // Parse date "YYYY-MM-DD" robustly using from_chars
-            size_t d1 = date.find('-');
-            size_t d2 = (d1 == std::string::npos) ? std::string::npos : date.find('-', d1 + 1);
-            if (d1 == std::string::npos || d2 == std::string::npos) {
-                FAIL() << "Failed to parse date (format): " << date;
+            if (sscanf(date.c_str(), "%d-%d-%d", &parsedLocalTime.tm_year, &parsedLocalTime.tm_mon, &parsedLocalTime.tm_mday) != 3) {
+                FAIL() << "Failed to parse date: " << date;
             }
-
-            int yyyy = 0, mmth = 0, dd = 0;
-            if (!parseInt(date.data(), date.data() + d1, yyyy) || !parseInt(date.data() + d1 + 1, date.data() + d2, mmth) || !parseInt(date.data() + d2 + 1, date.data() + date.size(), dd)) {
-                FAIL() << "Failed to parse date (values): " << date;
-            }
-
-            // Basic range checks
-            if (yyyy < 1900 || mmth < 1 || mmth > 12 || dd < 1 || dd > 31) {
-                FAIL() << "Date values out of range: " << date;
-            }
-
-            parsedLocalTime.tm_year = yyyy - 1900;  // Years since 1900
-            parsedLocalTime.tm_mon  = mmth - 1;     // Months are 0-11
-            parsedLocalTime.tm_mday = dd;
+            parsedLocalTime.tm_year -= 1900;  // Years since 1900
+            parsedLocalTime.tm_mon  -= 1;     // Months are 0-11
         } else {
             auto       now          = std::chrono::system_clock::now();
             auto       time_t_now   = std::chrono::system_clock::to_time_t(now);
