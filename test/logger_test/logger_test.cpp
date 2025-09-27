@@ -4,8 +4,10 @@
 // NO_LINT_END
 
 #include <array>
+#include <charconv>
 #include <chrono>
 #include <climits>
+#include <cstdio>
 #include <filesystem>
 #include <format>
 #include <fstream>
@@ -13,7 +15,6 @@
 #include <iostream>
 #include <optional>
 #include <regex>
-#include <charconv>
 
 #if defined __linux__
 #elif defined __APPLE__
@@ -27,6 +28,22 @@
 
 using namespace testing;
 namespace fs = std::filesystem;
+
+namespace {
+static constexpr int YEAR_OFFSET  = 1900;
+static constexpr int MONTH_OFFSET = 1;
+
+// Thread-safe safeLocalTime helper: use localtime_r on POSIX, localtime_s on Windows.
+struct tm safeLocalTime(std::time_t t) {
+    struct tm result{};
+#if defined(_WIN32)
+    localtime_s(&result, &t);
+#else
+    localtime_r(&t, &result);
+#endif
+    return result;
+}
+}  // namespace
 
 #undef MDN_LOGGER_FUNC_NAME
 #define MDN_LOGGER_FUNC_NAME testFullName.c_str()
@@ -62,13 +79,7 @@ public:
 
     ~BinaryFileReader() noexcept {
         if (file_.is_open()) {
-            try {
-                file_.close();
-            } catch (const std::exception &e) {
-                std::cerr << "Exception in destructor: " << e.what() << "\n";
-            } catch (...) {
-                std::cerr << "Unknown exception in destructor\n";
-            }
+            closeStreamNoThrow(file_);
         }
     }
 
@@ -108,11 +119,23 @@ public:
         return hasData;
     }
 
+    [[nodiscard]]
     bool isOpen() const {
         return file_.is_open();
     }
 
 private:
+    // Use fprintf for non-throwing diagnostics inside this noexcept helper.
+    static void closeStreamNoThrow(std::ifstream &fileStream) noexcept {
+        try {
+            fileStream.close();
+        } catch (const std::exception &exception) {
+            std::fprintf(stderr, "Exception in destructor: %s\n", exception.what());
+        } catch (...) {
+            std::fprintf(stderr, "Unknown exception in destructor\n");
+        }
+    }
+
     const fs::path filename_;
     std::ifstream  file_;
 };
@@ -278,28 +301,28 @@ protected:
         int         milliseconds;
 
         time = matches[indices.timeIndex].str();
-        if (sscanf(time.c_str(), "%d:%d:%d.%d", &parsedLocalTime.tm_hour, &parsedLocalTime.tm_min, &parsedLocalTime.tm_sec, &milliseconds) != 4) {
+        if (sscanf(time.c_str(), "%d:%d:%d.%d", &parsedLocalTime.tm_hour, &parsedLocalTime.tm_min, &parsedLocalTime.tm_sec, &milliseconds) != 4) {  // NOLINT(cert-err34-c,hicpp-vararg)
             FAIL() << "Failed to parse time: " << time;
         }
 
         if (indices.dateIndex.has_value()) {
             date = matches[indices.dateIndex.value()].str();
-            if (sscanf(date.c_str(), "%d-%d-%d", &parsedLocalTime.tm_year, &parsedLocalTime.tm_mon, &parsedLocalTime.tm_mday) != 3) {
+            if (sscanf(date.c_str(), "%d-%d-%d", &parsedLocalTime.tm_year, &parsedLocalTime.tm_mon, &parsedLocalTime.tm_mday) != 3) {  // NOLINT(cert-err34-c,hicpp-vararg)
                 FAIL() << "Failed to parse date: " << date;
             }
-            parsedLocalTime.tm_year -= 1900;  // Years since 1900
-            parsedLocalTime.tm_mon  -= 1;     // Months are 0-11
+            parsedLocalTime.tm_year -= YEAR_OFFSET;   // Years since 1900
+            parsedLocalTime.tm_mon  -= MONTH_OFFSET;  // Months are 0-11
         } else {
-            auto       now          = std::chrono::system_clock::now();
-            auto       time_t_now   = std::chrono::system_clock::to_time_t(now);
-            struct tm *current_tm   = std::localtime(&time_t_now);
-            parsedLocalTime.tm_year = current_tm->tm_year;
-            parsedLocalTime.tm_mon  = current_tm->tm_mon;
-            parsedLocalTime.tm_mday = current_tm->tm_mday;
+            auto      now           = std::chrono::system_clock::now();
+            auto      time_t_now    = std::chrono::system_clock::to_time_t(now);
+            struct tm currentTm     = safeLocalTime(time_t_now);
+            parsedLocalTime.tm_year = currentTm.tm_year;
+            parsedLocalTime.tm_mon  = currentTm.tm_mon;
+            parsedLocalTime.tm_mday = currentTm.tm_mday;
         }
 
-        auto tp      = std::chrono::system_clock::from_time_t(std::mktime(&parsedLocalTime));
-        timePointCur = tp + std::chrono::milliseconds(milliseconds);
+        auto parsedTimePoint = std::chrono::system_clock::from_time_t(std::mktime(&parsedLocalTime));
+        timePointCur         = parsedTimePoint + std::chrono::milliseconds(milliseconds);
 
         // Note: Very rare edge case - tests running at midnight might show
         // "time going backwards" for screen format due to day rollover
@@ -314,7 +337,7 @@ protected:
         timePointPrev = timePointCur;
     }
 
-    void verifyLogLevel(const std::smatch &matches, mdn_Logger_loggingFormat_t loggingFormat, const LogLine &expectedLogLine, const std::string &actualLogLine) {
+    static void verifyLogLevel(const std::smatch &matches, mdn_Logger_loggingFormat_t loggingFormat, const LogLine &expectedLogLine, const std::string &actualLogLine) {
         const auto &indices = loggingFormatToIndicesMap[loggingFormat];
 
         if (indices.logLevelIndex.has_value()) {
@@ -339,7 +362,7 @@ protected:
         ASSERT_EQ(actualFunction, expectedFunction) << "Function name mismatch in line: " << actualLogLine;
     }
 
-    void verifyMessage(const std::smatch &matches, mdn_Logger_loggingFormat_t loggingFormat, const LogLine &expectedLogLine, const std::string &actualLogLine) {
+    static void verifyMessage(const std::smatch &matches, mdn_Logger_loggingFormat_t loggingFormat, const LogLine &expectedLogLine, const std::string &actualLogLine) {
         const auto &indices = loggingFormatToIndicesMap[loggingFormat];
 
         auto actualMessage = matches[indices.messageIndex].str();
