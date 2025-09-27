@@ -9,38 +9,73 @@ extern "C" {
 #include <stdbool.h>
 #include <stdio.h>
 
-#include "c_logger_config.h"
-#include "errors.h"
+#include "mdn/status.h"
 
-typedef enum Logger_LoggingLevel_t {
-    LOGGING_LEVEL_DEBUG,     // Detailed information for debugging
-    LOGGING_LEVEL_INFO,      // General informational messages
-    LOGGING_LEVEL_WARNING,   // Warnings about potential issues
-    LOGGING_LEVEL_ERROR,     // Errors that need attention
-    LOGGING_LEVEL_CRITICAL,  // Critical issues that cause system failure
-    LOGGING_LEVEL_COUNT      // Total number of logging levels (upper bound)
-} Logger_LoggingLevel_t;
+typedef enum mdn_Logger_loggingLevel_t_ {
+    MDN_LOGGER_LOGGING_LEVEL_DEBUG,     // Detailed information for debugging
+    MDN_LOGGER_LOGGING_LEVEL_INFO,      // General informational messages
+    MDN_LOGGER_LOGGING_LEVEL_WARNING,   // Warnings about potential issues
+    MDN_LOGGER_LOGGING_LEVEL_ERROR,     // Errors that need attention
+    MDN_LOGGER_LOGGING_LEVEL_CRITICAL,  // Critical issues that cause system failure
+    MDN_LOGGER_LOGGING_LEVEL_COUNT      // Total number of logging levels (upper bound)
+} mdn_Logger_loggingLevel_t;
 
-typedef struct Logger_StreamConfig_t_ {
-    FILE                 *stream;
-    Logger_LoggingLevel_t loggingLevel;
-    bool                  isSupportingColor;
-} Logger_StreamConfig_t;
+typedef enum mdn_Logger_loggingFormat_t_ {
+    MDN_LOGGER_LOGGING_FORMAT_SCREEN,
+    MDN_LOGGER_LOGGING_FORMAT_FILE,
+    MDN_LOGGER_LOGGING_FORMAT_COUNT,
+} mdn_Logger_loggingFormat_t;
 
-#define LOG_COMMON(logLevel, ...) Logger_log(logLevel, __FILE__, __LINE__, __func__, __VA_ARGS__)
-#define LOG_DEBUG(...)            LOG_COMMON(LOGGING_LEVEL_DEBUG, __VA_ARGS__)
-#define LOG_INFO(...)             LOG_COMMON(LOGGING_LEVEL_INFO, __VA_ARGS__)
-#define LOG_WARNING(...)          LOG_COMMON(LOGGING_LEVEL_WARNING, __VA_ARGS__)
-#define LOG_ERROR(...)            LOG_COMMON(LOGGING_LEVEL_ERROR, __VA_ARGS__)
-#define LOG_CRITICAL(...)         LOG_COMMON(LOGGING_LEVEL_CRITICAL, __VA_ARGS__)
+typedef struct mdn_Logger_StreamConfig_t_ {
+    FILE                      *stream;
+    mdn_Logger_loggingLevel_t  loggingLevel;
+    mdn_Logger_loggingFormat_t loggingFormat;
+} mdn_Logger_StreamConfig_t;
 
-status_t Logger_init(void);
+#if (!defined LOGGING_DEBUG_AND_ABOVE) && (!defined LOGGING_INFO_AND_ABOVE) && (!defined LOGGING_WARNING_AND_ABOVE) && (!defined LOGGING_ERROR_AND_ABOVE) && (!defined LOGGING_CRITICAL_AND_ABOVE)
+# error Requested minimal logging level must be defined
+#endif
 
-status_t Logger_deinit(void);
+#define MDN_LOGGER_FUNC_NAME                 __func__
+#define MDN_LOGGER_LOG_COMMON(logLevel, ...) mdn_Logger_log(logLevel, __FILE__, __LINE__, MDN_LOGGER_FUNC_NAME, __VA_ARGS__)
 
-status_t Logger_addOutputStream(Logger_StreamConfig_t streamConfig);
+#if (defined LOGGING_DEBUG_AND_ABOVE)
+# define MDN_LOGGER_LOG_DEBUG(...) MDN_LOGGER_LOG_COMMON(MDN_LOGGER_LOGGING_LEVEL_DEBUG, __VA_ARGS__)
+#else
+# define MDN_LOGGER_LOG_DEBUG(...)
+#endif
 
-void Logger_log(Logger_LoggingLevel_t loggingLevel, const char *file, int line, const char *func, const char *format, ...);
+#if (defined LOGGING_DEBUG_AND_ABOVE) || (defined LOGGING_INFO_AND_ABOVE)
+# define MDN_LOGGER_LOG_INFO(...) MDN_LOGGER_LOG_COMMON(MDN_LOGGER_LOGGING_LEVEL_INFO, __VA_ARGS__)
+#else
+# define MDN_LOGGER_LOG_INFO(...)
+#endif
+
+#if (defined LOGGING_DEBUG_AND_ABOVE) || (defined LOGGING_INFO_AND_ABOVE) || (defined LOGGING_WARNING_AND_ABOVE)
+# define MDN_LOGGER_LOG_WARNING(...) MDN_LOGGER_LOG_COMMON(MDN_LOGGER_LOGGING_LEVEL_WARNING, __VA_ARGS__)
+#else
+# define MDN_LOGGER_LOG_WARNING(...)
+#endif
+
+#if (defined LOGGING_DEBUG_AND_ABOVE) || (defined LOGGING_INFO_AND_ABOVE) || (defined LOGGING_WARNING_AND_ABOVE) || (defined LOGGING_ERROR_AND_ABOVE)
+# define MDN_LOGGER_LOG_ERROR(...) MDN_LOGGER_LOG_COMMON(MDN_LOGGER_LOGGING_LEVEL_ERROR, __VA_ARGS__)
+#else
+# define MDN_LOGGER_LOG_ERROR(...)
+#endif
+
+#if (defined LOGGING_DEBUG_AND_ABOVE) || (defined LOGGING_INFO_AND_ABOVE) || (defined LOGGING_WARNING_AND_ABOVE) || (defined LOGGING_ERROR_AND_ABOVE) || (defined LOGGING_CRITICAL_AND_ABOVE)
+# define MDN_LOGGER_LOG_CRITICAL(...) MDN_LOGGER_LOG_COMMON(MDN_LOGGER_LOGGING_LEVEL_CRITICAL, __VA_ARGS__)
+#else
+# define MDN_LOGGER_LOG_CRITICAL(...)
+#endif
+
+mdn_Status_t mdn_Logger_init(void);
+
+mdn_Status_t mdn_Logger_deinit(void);
+
+mdn_Status_t mdn_Logger_addOutputStream(mdn_Logger_StreamConfig_t streamConfig);
+
+void mdn_Logger_log(mdn_Logger_loggingLevel_t loggingLevel, const char *file, int line, const char *func, const char *format, ...);
 
 #ifdef __cplusplus
 }

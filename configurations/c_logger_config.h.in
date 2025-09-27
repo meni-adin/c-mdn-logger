@@ -1,7 +1,0 @@
-#ifndef C_LOGGER_CONFIG_H
-#define C_LOGGER_CONFIG_H
-
-#cmakedefine C_LOGGER_SAFE_MODE
-#cmakedefine MW_ENABLE_MOCKING
-
-#endif // C_LOGGER_CONFIG_H

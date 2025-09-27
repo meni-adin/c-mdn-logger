@@ -81,9 +81,9 @@ IndentWrappedFunctionNames: true
 InsertBraces: true
 InsertNewlineAtEOF: true
 IntegerLiteralSeparator:
-  Binary: 4
-  Decimal: 3
-  Hex: 4
+  Binary: 0
+  Decimal: 0
+  Hex: 0
 KeepEmptyLinesAtEOF: false
 KeepEmptyLinesAtTheStartOfBlocks: false
 LambdaBodyIndentation: Signature

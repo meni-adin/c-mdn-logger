@@ -11,13 +11,23 @@ Checks: >-
   -zircon-*,
   -bugprone-easily-swappable-parameters,
   -bugprone-suspicious-realloc-usage,
+  -cert-err58-cpp,
   -clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling,
   -clang-diagnostic-c++98-compat-pedantic,
   -clang-diagnostic-c++98-compat,
   -clang-diagnostic-cast-qual,
   -clang-diagnostic-declaration-after-statement,
   -clang-diagnostic-error,
+  -clang-diagnostic-c++98-compat-local-type-template-args,
+  -clang-diagnostic-exit-time-destructors,
+  -clang-diagnostic-global-constructors,
+  -clang-diagnostic-pre-c++17-compat,
   -clang-diagnostic-pre-c++20-compat-pedantic,
+  -clang-diagnostic-pre-c++20-compat,
+  -clang-diagnostic-pre-c11-compat,
+  -clang-diagnostic-switch-default,
+  -clang-diagnostic-switch,
+  -clang-diagnostic-shadow-field-in-constructor,
   -clang-diagnostic-unsafe-buffer-usage,
   -misc-include-cleaner,
   -misc-non-private-member-variables-in-classes,
@@ -28,6 +38,3 @@ Checks: >-
   -readability-function-cognitive-complexity,
   -readability-isolate-declaration,
 HeaderFilterRegex: '.*'
-
-# Notes:
-# - Maybe bring back `readability-function-cognitive-complexity`.
