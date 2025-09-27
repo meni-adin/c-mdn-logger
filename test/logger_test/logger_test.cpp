@@ -317,7 +317,7 @@ protected:
         } else {
             auto      now      = std::chrono::system_clock::now();
             auto      timetNow = std::chrono::system_clock::to_time_t(now);
-            struct tm currentTm;
+            struct tm currentTm{};
             ASSERT_NO_FATAL_FAILURE(safeLocalTime(timetNow, currentTm));
             parsedLocalTime.tm_year = currentTm.tm_year;
             parsedLocalTime.tm_mon  = currentTm.tm_mon;
@@ -463,8 +463,8 @@ TEST_F(LoggerTest, AddOutputStream) {
 }
 
 TEST_F(LoggerTest, PrintToFile) {
-    const std::vector<OutputFiles>   outputFiles = {OutputFiles::LOGGER_OUTPUT_1, OutputFiles::STDOUT_REDIRECTION};
-    const std::vector<LogLine> logLines    = {
+    const std::vector<OutputFiles> outputFiles = {OutputFiles::LOGGER_OUTPUT_1, OutputFiles::STDOUT_REDIRECTION};
+    const std::vector<LogLine>     logLines    = {
         LogLine{.loggingLevel = MDN_LOGGER_LOGGING_LEVEL_DEBUG,    .message = "Grey debug message"     },
         LogLine{.loggingLevel = MDN_LOGGER_LOGGING_LEVEL_INFO,     .message = "White info message"     },
         LogLine{.loggingLevel = MDN_LOGGER_LOGGING_LEVEL_WARNING,  .message = "Yellow warning message" },
