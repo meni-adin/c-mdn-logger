@@ -4,13 +4,14 @@
 // NO_LINT_END
 
 #include <array>
+#include <charconv>
 #include <chrono>
+#include <climits>
 #include <filesystem>
 #include <format>
 #include <fstream>
 #include <gmock/gmock.h>
 #include <iostream>
-#include <climits>
 #include <optional>
 #include <regex>
 
@@ -48,7 +49,7 @@ struct FormatRegexIndices {
     size_t                timeIndex = SIZE_MAX;
     std::optional<size_t> logLevelIndex;
     size_t                functionIndex = SIZE_MAX;
-    size_t                messageIndex = SIZE_MAX;
+    size_t                messageIndex  = SIZE_MAX;
     std::optional<size_t> colorPrefixIndex;
     std::optional<size_t> colorSuffixIndex;
 };
@@ -56,23 +57,23 @@ struct FormatRegexIndices {
 class BinaryFileReader {
 public:
     explicit BinaryFileReader(const fs::path &filename) : filename_(filename) {
-        file_.open(filename, std::ios::in | std::ios::binary);  // NOLINT(hicpp-signed-bitwise99)
+        file_.open(filename, std::ios::in | std::ios::binary);  // NOLINT(hicpp-signed-bitwise)
     }
 
     ~BinaryFileReader() noexcept {
         if (file_.is_open()) {
             try {
                 file_.close();
+            } catch (const std::exception &e) {
+                std::cerr << "Exception in destructor: " << e.what() << std::endl;
             } catch (...) {
-                // Ignore exceptions in destructor to prevent std::terminate
+                std::cerr << "Unknown exception in destructor." << std::endl;
             }
         }
     }
 
-    BinaryFileReader(const BinaryFileReader&) = delete;
-    BinaryFileReader& operator=(const BinaryFileReader&) = delete;
-    BinaryFileReader(BinaryFileReader&&) = default;
-    BinaryFileReader& operator=(BinaryFileReader&&) = default;
+    BinaryFileReader(const BinaryFileReader &)            = delete;
+    BinaryFileReader &operator=(const BinaryFileReader &) = delete;
 
     void verifyOpen() {
         ASSERT_EQ(file_.is_open(), true) << "Error: Could not open file " << filename_;
@@ -125,19 +126,21 @@ protected:
 
     static inline std::vector<std::regex>                                     loggingFormatToRegexMap;
     static inline std::vector<FormatRegexIndices>                             loggingFormatToIndicesMap;
-    static constexpr std::array<const char *, MDN_LOGGER_LOGGING_LEVEL_COUNT> logLevelToStringMap = {{
-        "DEBUG",
-        "INFO",
-        "WARNING",
-        "ERROR",
-        "CRITICAL"}};
+    static constexpr std::array<const char *, MDN_LOGGER_LOGGING_LEVEL_COUNT> logLevelToStringMap = {
+        {"DEBUG",
+         "INFO",
+         "WARNING",
+         "ERROR",
+         "CRITICAL"}
+    };
 
-    static constexpr std::array<const char *, MDN_LOGGER_LOGGING_LEVEL_COUNT> logLevelToAnsiColorMap = {{
-        TEST_ANSI_COLOR("90"),
-        TEST_ANSI_COLOR("0"),
-        TEST_ANSI_COLOR("33"),
-        TEST_ANSI_COLOR("31"),
-        TEST_ANSI_COLOR("35")}};
+    static constexpr std::array<const char *, MDN_LOGGER_LOGGING_LEVEL_COUNT> logLevelToAnsiColorMap = {
+        {TEST_ANSI_COLOR("90"),
+         TEST_ANSI_COLOR("0"),
+         TEST_ANSI_COLOR("33"),
+         TEST_ANSI_COLOR("31"),
+         TEST_ANSI_COLOR("35")}
+    };
 
     static constexpr const char *ansiResetColor = TEST_ANSI_COLOR("0");
 
@@ -156,44 +159,46 @@ protected:
     };
 
     std::array<OutputFileInfo, static_cast<std::size_t>(OutputFiles::COUNT)> outputFilesInfo{
-        OutputFileInfo{mdn_Logger_StreamConfig_t{nullptr, MDN_LOGGER_LOGGING_LEVEL_DEBUG, MDN_LOGGER_LOGGING_FORMAT_FILE},  nullptr, "logger1",           ""},
-        OutputFileInfo{mdn_Logger_StreamConfig_t{nullptr, MDN_LOGGER_LOGGING_LEVEL_DEBUG, MDN_LOGGER_LOGGING_FORMAT_FILE},  nullptr, "logger2",           ""},
-        OutputFileInfo{mdn_Logger_StreamConfig_t{stdout, MDN_LOGGER_LOGGING_LEVEL_DEBUG, MDN_LOGGER_LOGGING_FORMAT_SCREEN}, nullptr, "stdoutRedirection", ""},
-        OutputFileInfo{mdn_Logger_StreamConfig_t{stderr, MDN_LOGGER_LOGGING_LEVEL_DEBUG, MDN_LOGGER_LOGGING_FORMAT_SCREEN}, nullptr, "stderrRedirection", ""},
+        OutputFileInfo{.streamConfig = mdn_Logger_StreamConfig_t{nullptr, MDN_LOGGER_LOGGING_LEVEL_DEBUG, MDN_LOGGER_LOGGING_FORMAT_FILE},  .fileToRead = nullptr, .suffix = "logger1",           .path = ""},
+        OutputFileInfo{.streamConfig = mdn_Logger_StreamConfig_t{nullptr, MDN_LOGGER_LOGGING_LEVEL_DEBUG, MDN_LOGGER_LOGGING_FORMAT_FILE},  .fileToRead = nullptr, .suffix = "logger2",           .path = ""},
+        OutputFileInfo{.streamConfig = mdn_Logger_StreamConfig_t{stdout, MDN_LOGGER_LOGGING_LEVEL_DEBUG, MDN_LOGGER_LOGGING_FORMAT_SCREEN}, .fileToRead = nullptr, .suffix = "stdoutRedirection", .path = ""},
+        OutputFileInfo{.streamConfig = mdn_Logger_StreamConfig_t{stderr, MDN_LOGGER_LOGGING_LEVEL_DEBUG, MDN_LOGGER_LOGGING_FORMAT_SCREEN}, .fileToRead = nullptr, .suffix = "stderrRedirection", .path = ""},
     };
 
     void logDebug(const std::string &message) {
-        MDN_LOGGER_LOG_DEBUG(message.c_str());
+        MDN_LOGGER_LOG_DEBUG(message.c_str());  // NOLINT(hicpp-vararg)
     }
 
     void logInfo(const std::string &message) {
-        MDN_LOGGER_LOG_INFO(message.c_str());
+        MDN_LOGGER_LOG_INFO(message.c_str());  // NOLINT(hicpp-vararg)
     }
 
     void logWarning(const std::string &message) {
-        MDN_LOGGER_LOG_WARNING(message.c_str());
+        MDN_LOGGER_LOG_WARNING(message.c_str());  // NOLINT(hicpp-vararg)
     }
 
     void logError(const std::string &message) {
-        MDN_LOGGER_LOG_ERROR(message.c_str());
+        MDN_LOGGER_LOG_ERROR(message.c_str());  // NOLINT(hicpp-vararg)
     }
 
     void logCritical(const std::string &message) {
-        MDN_LOGGER_LOG_CRITICAL(message.c_str());
+        MDN_LOGGER_LOG_CRITICAL(message.c_str());  // NOLINT(hicpp-vararg)
     }
 
     using LogFuncCallback = void (LoggerTest::*)(const std::string &);
-    std::array<LogFuncCallback, MDN_LOGGER_LOGGING_LEVEL_COUNT> logFunctions{{
-        &LoggerTest::logDebug,
-        &LoggerTest::logInfo,
-        &LoggerTest::logWarning,
-        &LoggerTest::logError,
-        &LoggerTest::logCritical,
-    }};
+    std::array<LogFuncCallback, MDN_LOGGER_LOGGING_LEVEL_COUNT> logFunctions{
+        {
+         &LoggerTest::logDebug,
+         &LoggerTest::logInfo,
+         &LoggerTest::logWarning,
+         &LoggerTest::logError,
+         &LoggerTest::logCritical,
+         }
+    };
 
     void SetUp() override {
         mWMock = std::make_unique<MWMock>();
-        mWMock->SetUp();
+        MWMock::SetUp();
 
         initTestFullName();
     }
@@ -212,7 +217,7 @@ protected:
         }
     }
 
-    void redirectRequiredStreamsStop(const std::vector<OutputFiles> &outputFiles) {
+    static void redirectRequiredStreamsStop(const std::vector<OutputFiles> &outputFiles) {
         for (const auto outputFile : outputFiles) {
             if (outputFile == OutputFiles::STDOUT_REDIRECTION) {
                 ASSERT_EQ(mdn_StandardStreamsRedirection_stop(MDN_STANDARD_STREAMS_REDIRECTION_STREAM_ID_STDOUT), MDN_STATUS_SUCCESS);
@@ -230,18 +235,18 @@ protected:
         ASSERT_NO_FATAL_FAILURE(redirectRequiredStreamsStop(outputFiles));
     }
 
-    void openTestOutputFiles(const std::vector<OutputFiles> outputFiles) {
+    void openTestOutputFiles(const std::vector<OutputFiles> &outputFiles) {
         fs::path testOutputFilesPath;
 
         testOutputFilesPath = testOutputDirPath / testFullName;
 
         for (const auto outputFile : outputFiles) {
-            OutputFileInfo &outputFileRef  = outputFilesInfo[static_cast<std::size_t>(outputFile)];
-            outputFileRef.path             = testOutputFilesPath.string();
-            outputFileRef.path            += "_";
-            outputFileRef.path            += outputFileRef.suffix;
-            outputFileRef.path            += ".log";
-            outputFileRef.fileToRead       = fopen(outputFileRef.path.c_str(), "w");
+            auto &outputFileRef       = outputFilesInfo[static_cast<std::size_t>(outputFile)];
+            outputFileRef.path        = testOutputFilesPath.string();
+            outputFileRef.path       += "_";
+            outputFileRef.path       += outputFileRef.suffix;
+            outputFileRef.path       += ".log";
+            outputFileRef.fileToRead  = fopen(outputFileRef.path.c_str(), "w");
             ASSERT_NE(outputFileRef.fileToRead, nullptr)
                 << "Failed to open file for writing: " << outputFileRef.path << "\n";
             if (outputFileRef.streamConfig.stream == nullptr) {
@@ -252,7 +257,7 @@ protected:
 
     void closeTestOutputFiles(const std::vector<OutputFiles> &outputFiles) {
         for (const auto outputFile : outputFiles) {
-            OutputFileInfo &outputFileRef = outputFilesInfo[static_cast<std::size_t>(outputFile)];
+            const auto &outputFileRef = outputFilesInfo[static_cast<std::size_t>(outputFile)];
             if (fclose(outputFileRef.fileToRead) != 0) {
                 FAIL() << "Failed to close file: " << outputFileRef.path;
             }
@@ -266,34 +271,81 @@ protected:
     }
 
     void verifyTimestamp(const std::smatch &matches, mdn_Logger_loggingFormat_t loggingFormat) {
-        const FormatRegexIndices &indices = loggingFormatToIndicesMap[loggingFormat];
-        std::string               time;
-        std::string               date;
-        struct tm                 tm = {};
-        int                       milliseconds;
+        // TODO: break down into smaller functions
+        // TODO: decrease code duplication
+
+        const auto &indices = loggingFormatToIndicesMap[loggingFormat];
+        std::string time;
+        std::string date;
+        struct tm   parsedLocalTime = {};
+        int         milliseconds;
 
         time = matches[indices.timeIndex].str();
-        if (sscanf(time.c_str(), "%d:%d:%d.%d", &tm.tm_hour, &tm.tm_min, &tm.tm_sec, &milliseconds) != 4) {
-            FAIL() << "Failed to parse time: " << time;
+
+        // Parse time "HH:MM:SS.mmm" robustly using from_chars to detect errors and overflows
+        auto parseInt = [&](const char *b, const char *e, int &out) -> bool {
+            if (b >= e) {
+                return false;
+            }
+            std::from_chars_result res = std::from_chars(b, e, out);
+            return res.ec == std::errc() && res.ptr == e;
+        };
+
+        size_t p1 = time.find(':');
+        size_t p2 = (p1 == std::string::npos) ? std::string::npos : time.find(':', p1 + 1);
+        size_t p3 = (p2 == std::string::npos) ? std::string::npos : time.find('.', p2 + 1);
+        if (p1 == std::string::npos || p2 == std::string::npos || p3 == std::string::npos) {
+            FAIL() << "Failed to parse time (format): " << time;
         }
+
+        int hh = 0, mm = 0, ss = 0, msec = 0;
+        if (!parseInt(time.data(), time.data() + p1, hh) || !parseInt(time.data() + p1 + 1, time.data() + p2, mm) || !parseInt(time.data() + p2 + 1, time.data() + p3, ss) || !parseInt(time.data() + p3 + 1, time.data() + time.size(), msec)) {
+            FAIL() << "Failed to parse time (values): " << time;
+        }
+
+        // Validate ranges
+        if (hh < 0 || hh > 23 || mm < 0 || mm > 59 || ss < 0 || ss > 59 || msec < 0 || msec > 999) {
+            FAIL() << "Time values out of range: " << time;
+        }
+
+        parsedLocalTime.tm_hour = hh;
+        parsedLocalTime.tm_min  = mm;
+        parsedLocalTime.tm_sec  = ss;
+        milliseconds            = msec;
 
         if (indices.dateIndex.has_value()) {
             date = matches[indices.dateIndex.value()].str();
-            if (sscanf(date.c_str(), "%d-%d-%d", &tm.tm_year, &tm.tm_mon, &tm.tm_mday) != 3) {
-                FAIL() << "Failed to parse date: " << date;
+
+            // Parse date "YYYY-MM-DD" robustly using from_chars
+            size_t d1 = date.find('-');
+            size_t d2 = (d1 == std::string::npos) ? std::string::npos : date.find('-', d1 + 1);
+            if (d1 == std::string::npos || d2 == std::string::npos) {
+                FAIL() << "Failed to parse date (format): " << date;
             }
-            tm.tm_year -= 1900;  // Years since 1900
-            tm.tm_mon  -= 1;     // Months are 0-11
+
+            int yyyy = 0, mmth = 0, dd = 0;
+            if (!parseInt(date.data(), date.data() + d1, yyyy) || !parseInt(date.data() + d1 + 1, date.data() + d2, mmth) || !parseInt(date.data() + d2 + 1, date.data() + date.size(), dd)) {
+                FAIL() << "Failed to parse date (values): " << date;
+            }
+
+            // Basic range checks
+            if (yyyy < 1900 || mmth < 1 || mmth > 12 || dd < 1 || dd > 31) {
+                FAIL() << "Date values out of range: " << date;
+            }
+
+            parsedLocalTime.tm_year = yyyy - 1900;  // Years since 1900
+            parsedLocalTime.tm_mon  = mmth - 1;     // Months are 0-11
+            parsedLocalTime.tm_mday = dd;
         } else {
-            auto       now        = std::chrono::system_clock::now();
-            auto       time_t_now = std::chrono::system_clock::to_time_t(now);
-            struct tm *current_tm = std::localtime(&time_t_now);
-            tm.tm_year            = current_tm->tm_year;
-            tm.tm_mon             = current_tm->tm_mon;
-            tm.tm_mday            = current_tm->tm_mday;
+            auto       now          = std::chrono::system_clock::now();
+            auto       time_t_now   = std::chrono::system_clock::to_time_t(now);
+            struct tm *current_tm   = std::localtime(&time_t_now);
+            parsedLocalTime.tm_year = current_tm->tm_year;
+            parsedLocalTime.tm_mon  = current_tm->tm_mon;
+            parsedLocalTime.tm_mday = current_tm->tm_mday;
         }
 
-        auto tp      = std::chrono::system_clock::from_time_t(std::mktime(&tm));
+        auto tp      = std::chrono::system_clock::from_time_t(std::mktime(&parsedLocalTime));
         timePointCur = tp + std::chrono::milliseconds(milliseconds);
 
         // Note: Very rare edge case - tests running at midnight might show
@@ -310,34 +362,34 @@ protected:
     }
 
     void verifyLogLevel(const std::smatch &matches, mdn_Logger_loggingFormat_t loggingFormat, const LogLine &expectedLogLine, const std::string &actualLogLine) {
-        const FormatRegexIndices &indices = loggingFormatToIndicesMap[loggingFormat];
+        const auto &indices = loggingFormatToIndicesMap[loggingFormat];
 
         if (indices.logLevelIndex.has_value()) {
-            std::string        actualLogLevel   = matches[indices.logLevelIndex.value()].str();
-            const std::string &expectedLogLevel = logLevelToStringMap[expectedLogLine.loggingLevel];
+            auto        actualLogLevel   = matches[indices.logLevelIndex.value()].str();
+            const auto &expectedLogLevel = logLevelToStringMap[expectedLogLine.loggingLevel];
             ASSERT_EQ(actualLogLevel, expectedLogLevel) << "Log level mismatch in line: " << actualLogLine;
         } else if (indices.colorPrefixIndex.has_value() && indices.colorSuffixIndex.has_value()) {
-            std::string actualColorPrefix = matches[indices.colorPrefixIndex.value()].str();
-            std::string actualColorSuffix = matches[indices.colorSuffixIndex.value()].str();
+            auto actualColorPrefix = matches[indices.colorPrefixIndex.value()].str();
+            auto actualColorSuffix = matches[indices.colorSuffixIndex.value()].str();
 
-            const std::string &expectedColorPrefix = logLevelToAnsiColorMap[expectedLogLine.loggingLevel];
+            const auto &expectedColorPrefix = logLevelToAnsiColorMap[expectedLogLine.loggingLevel];
             ASSERT_EQ(actualColorPrefix, expectedColorPrefix) << "Color prefix mismatch in line: " << actualLogLine;
             ASSERT_EQ(actualColorSuffix, ansiResetColor) << "Color suffix should be reset code in line: " << actualLogLine;
         }
     }
 
     void verifyFunctionName(const std::smatch &matches, mdn_Logger_loggingFormat_t loggingFormat, const std::string &actualLogLine) {
-        const FormatRegexIndices &indices = loggingFormatToIndicesMap[loggingFormat];
+        const auto &indices = loggingFormatToIndicesMap[loggingFormat];
 
-        std::string actualFunction   = matches[indices.functionIndex].str();
-        std::string expectedFunction = testFullName;
+        auto actualFunction   = matches[indices.functionIndex].str();
+        auto expectedFunction = testFullName;
         ASSERT_EQ(actualFunction, expectedFunction) << "Function name mismatch in line: " << actualLogLine;
     }
 
     void verifyMessage(const std::smatch &matches, mdn_Logger_loggingFormat_t loggingFormat, const LogLine &expectedLogLine, const std::string &actualLogLine) {
-        const FormatRegexIndices &indices = loggingFormatToIndicesMap[loggingFormat];
+        const auto &indices = loggingFormatToIndicesMap[loggingFormat];
 
-        std::string actualMessage = matches[indices.messageIndex].str();
+        auto actualMessage = matches[indices.messageIndex].str();
         ASSERT_EQ(actualMessage, expectedLogLine.message) << "Message content mismatch in line: " << actualLogLine;
     }
 
@@ -369,8 +421,8 @@ protected:
 
     void verifyLogFiles(const std::vector<LogLine> &logLines, const std::vector<OutputFiles> &outputFiles) {
         for (const auto outputFile : outputFiles) {
-            OutputFileInfo &outputFileRef    = outputFilesInfo[static_cast<std::size_t>(outputFile)];
-            auto            binaryFileReader = BinaryFileReader(outputFileRef.path);
+            auto &outputFileRef    = outputFilesInfo[static_cast<std::size_t>(outputFile)];
+            auto  binaryFileReader = BinaryFileReader(outputFileRef.path);
             ASSERT_NO_FATAL_FAILURE(binaryFileReader.verifyOpen());
             timePointPrev = std::chrono::system_clock::time_point{};
             ASSERT_NO_FATAL_FAILURE(verifyLogLinesForLogFile(binaryFileReader, outputFileRef, logLines));
