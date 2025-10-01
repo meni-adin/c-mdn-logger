@@ -199,7 +199,7 @@ static void mdn_Logger_logToScreen(mdn_Logger_logToStreamArguments_t *logToStrea
     mdn_Logger_printTimestamp(stream, false);
     mdn_Logger_printFuncName(stream, logToStreamArguments->funcName);
     mdn_Logger_printSeparator(stream);
-    (void)vfprintf(stream, logToStreamArguments->format, logToStreamArguments->args);  // NO-LINT
+    (void)vfprintf(stream, logToStreamArguments->format, logToStreamArguments->args);  // NOLINT(clang-diagnostic-format-nonliteral)
     mdn_Logger_setColor(stream, LOGGING_COLOR_RESET);
     (void)fprintf(stream, "\n");
 }
@@ -211,7 +211,7 @@ static void mdn_Logger_logToFile(mdn_Logger_logToStreamArguments_t *logToStreamA
     mdn_Logger_printLoggingLevel(stream, logToStreamArguments->loggingLevel);
     mdn_Logger_printFuncName(stream, logToStreamArguments->funcName);
     mdn_Logger_printSeparator(stream);
-    (void)vfprintf(stream, logToStreamArguments->format, logToStreamArguments->args);  // NO-LINT
+    (void)vfprintf(stream, logToStreamArguments->format, logToStreamArguments->args);  // NOLINT(clang-diagnostic-format-nonliteral)
     (void)fprintf(stream, "\n");
 }
 

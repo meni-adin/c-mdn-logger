@@ -657,13 +657,13 @@ public:
         streamConfigLoggingLevelTooBig.loggingLevel = MDN_LOGGER_LOGGING_LEVEL_COUNT;
 
         streamConfigLoggingLevelTooSmall              = streamConfigDefault;
-        streamConfigLoggingLevelTooSmall.loggingLevel = static_cast<mdn_Logger_loggingLevel_t>(-1);  // NO-LINT(clang-analyzer-optin.core.EnumCastOutOfRange)
+        streamConfigLoggingLevelTooSmall.loggingLevel = static_cast<mdn_Logger_loggingLevel_t>(-1);  // NOLINT(clang-analyzer-optin.core.EnumCastOutOfRange)
 
         streamConfigLoggingFormatTooBig               = streamConfigDefault;
         streamConfigLoggingFormatTooBig.loggingFormat = MDN_LOGGER_LOGGING_FORMAT_COUNT;
 
         streamConfigLoggingFormatTooSmall               = streamConfigDefault;
-        streamConfigLoggingFormatTooSmall.loggingFormat = static_cast<mdn_Logger_loggingFormat_t>(-1);  // NO-LINT(clang-analyzer-optin.core.EnumCastOutOfRange)
+        streamConfigLoggingFormatTooSmall.loggingFormat = static_cast<mdn_Logger_loggingFormat_t>(-1);  // NOLINT(clang-analyzer-optin.core.EnumCastOutOfRange)
     }
 };
 
@@ -686,11 +686,11 @@ TEST_F(LoggerSafeModeTest, InvalidArguments) {
     ASSERT_NO_FATAL_FAILURE(addOutputStreams(outputFiles));
     ASSERT_NO_FATAL_FAILURE(printAllToLogs(defaultLogLines, outputFiles));
 
-    mdn_Logger_log(static_cast<mdn_Logger_loggingLevel_t>(-1), __FILE__, __LINE__, MDN_LOGGER_FUNC_NAME, "Test message (should not be logged, logging format too small)");
-    mdn_Logger_log(MDN_LOGGER_LOGGING_LEVEL_COUNT, __FILE__, __LINE__, MDN_LOGGER_FUNC_NAME, "Test message (should not be logged, logging format too big)");
-    mdn_Logger_log(MDN_LOGGER_LOGGING_LEVEL_DEBUG, NULL, __LINE__, MDN_LOGGER_FUNC_NAME, "Test message (should not be logged, file is null)");
-    mdn_Logger_log(MDN_LOGGER_LOGGING_LEVEL_DEBUG, __FILE__, -1, MDN_LOGGER_FUNC_NAME, "Test message (should not be logged, line is negative)");
-    mdn_Logger_log(MDN_LOGGER_LOGGING_LEVEL_DEBUG, __FILE__, __LINE__, NULL, "Test message (should not be logged, function is null)");
+    mdn_Logger_log(static_cast<mdn_Logger_loggingLevel_t>(-1), __FILE__, __LINE__, MDN_LOGGER_FUNC_NAME, "Test message (should not be logged, logging format too small)");  // NOLINT(clang-analyzer-optin.core.EnumCastOutOfRange,hicpp-vararg)
+    mdn_Logger_log(MDN_LOGGER_LOGGING_LEVEL_COUNT, __FILE__, __LINE__, MDN_LOGGER_FUNC_NAME, "Test message (should not be logged, logging format too big)");                // NOLINT(hicpp-vararg)
+    mdn_Logger_log(MDN_LOGGER_LOGGING_LEVEL_DEBUG, nullptr, __LINE__, MDN_LOGGER_FUNC_NAME, "Test message (should not be logged, file is null)");                           // NOLINT(hicpp-vararg)
+    mdn_Logger_log(MDN_LOGGER_LOGGING_LEVEL_DEBUG, __FILE__, -1, MDN_LOGGER_FUNC_NAME, "Test message (should not be logged, line is negative)");                            // NOLINT(hicpp-vararg)
+    mdn_Logger_log(MDN_LOGGER_LOGGING_LEVEL_DEBUG, __FILE__, __LINE__, nullptr, "Test message (should not be logged, function is null)");                                   // NOLINT(hicpp-vararg)
 
     ASSERT_EQ(mdn_Logger_deinit(), MDN_STATUS_SUCCESS);
     ASSERT_EQ(mdn_Logger_deinit(), MDN_STATUS_ERROR_LIBRARY_NOT_INITIALIZED);
