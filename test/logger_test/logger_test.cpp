@@ -673,7 +673,7 @@ TEST_F(LoggerSafeModeTest, InvalidArguments) {
     ASSERT_NO_FATAL_FAILURE(openTestOutputFiles(outputFiles));
 
     ASSERT_EQ(mdn_Logger_addOutputStream(streamConfigDefault), MDN_STATUS_ERROR_LIBRARY_NOT_INITIALIZED);
-    MDN_LOGGER_LOG_DEBUG("Test message (should not be logged, library not initialized)");
+    MDN_LOGGER_LOG_DEBUG("Test message (should not be logged, library not initialized)");  // NOLINT(hicpp-vararg)
 
     ASSERT_EQ(mdn_Logger_init(), MDN_STATUS_SUCCESS);
     ASSERT_EQ(mdn_Logger_init(), MDN_STATUS_ERROR_LIBRARY_ALREADY_INITIALIZED);
