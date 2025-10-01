@@ -1,4 +1,4 @@
-#define LOGGING_DEBUG_AND_ABOVE
+#define MDN_LOGGER_SET_LEVEL_DEBUG
 #include "logger.h"
 
 #include <stdarg.h>
@@ -199,7 +199,7 @@ static void mdn_Logger_logToScreen(mdn_Logger_logToStreamArguments_t *logToStrea
     mdn_Logger_printTimestamp(stream, false);
     mdn_Logger_printFuncName(stream, logToStreamArguments->funcName);
     mdn_Logger_printSeparator(stream);
-    (void)vfprintf(stream, logToStreamArguments->format, logToStreamArguments->args);  // NOLINT (allow non-literal string as format)
+    (void)vfprintf(stream, logToStreamArguments->format, logToStreamArguments->args);  // NO-LINT
     mdn_Logger_setColor(stream, LOGGING_COLOR_RESET);
     (void)fprintf(stream, "\n");
 }
@@ -211,7 +211,7 @@ static void mdn_Logger_logToFile(mdn_Logger_logToStreamArguments_t *logToStreamA
     mdn_Logger_printLoggingLevel(stream, logToStreamArguments->loggingLevel);
     mdn_Logger_printFuncName(stream, logToStreamArguments->funcName);
     mdn_Logger_printSeparator(stream);
-    (void)vfprintf(stream, logToStreamArguments->format, logToStreamArguments->args);  // NOLINT (allow non-literal string as format)
+    (void)vfprintf(stream, logToStreamArguments->format, logToStreamArguments->args);  // NO-LINT
     (void)fprintf(stream, "\n");
 }
 
@@ -231,6 +231,15 @@ void mdn_Logger_log(mdn_Logger_loggingLevel_t loggingLevel, const char *file, in
     };
     va_list                 args;
     mdn_Logger_logPrintFunc logPrintFunc;
+
+#ifdef MDN_LOGGER_SAFE_MODE
+    if (g_Logger_internalState == NULL) {
+        return;
+    }
+    if (!IS_VALID_LOGGING_LEVEL(loggingLevel) || (file == NULL) || (line < 0) || (funcName == NULL) || (format == NULL)) {
+        return;
+    }
+#endif  // MDN_LOGGER_SAFE_MODE
 
     for (size_t idx = 0; idx < g_Logger_internalState->streamsArrLen; ++idx) {
         if (loggingLevel < g_Logger_internalState->streamsArr[idx].loggingLevel) {

@@ -32,38 +32,38 @@ typedef struct mdn_Logger_StreamConfig_t_ {
     mdn_Logger_loggingFormat_t loggingFormat;
 } mdn_Logger_StreamConfig_t;
 
-#if (!defined LOGGING_DEBUG_AND_ABOVE) && (!defined LOGGING_INFO_AND_ABOVE) && (!defined LOGGING_WARNING_AND_ABOVE) && (!defined LOGGING_ERROR_AND_ABOVE) && (!defined LOGGING_CRITICAL_AND_ABOVE)
+#if (!defined MDN_LOGGER_SET_LEVEL_DEBUG) && (!defined MDN_LOGGER_SET_LEVEL_INFO) && (!defined MDN_LOGGER_SET_LEVEL_WARNING) && (!defined MDN_LOGGER_SET_LEVEL_ERROR) && (!defined MDN_LOGGER_SET_LEVEL_CRITICAL)
 # error Requested minimal logging level must be defined
 #endif
 
 #define MDN_LOGGER_FUNC_NAME                 __func__
 #define MDN_LOGGER_LOG_COMMON(logLevel, ...) mdn_Logger_log(logLevel, __FILE__, __LINE__, MDN_LOGGER_FUNC_NAME, __VA_ARGS__)
 
-#if (defined LOGGING_DEBUG_AND_ABOVE)
+#if (defined MDN_LOGGER_SET_LEVEL_DEBUG)
 # define MDN_LOGGER_LOG_DEBUG(...) MDN_LOGGER_LOG_COMMON(MDN_LOGGER_LOGGING_LEVEL_DEBUG, __VA_ARGS__)
 #else
 # define MDN_LOGGER_LOG_DEBUG(...)
 #endif
 
-#if (defined LOGGING_DEBUG_AND_ABOVE) || (defined LOGGING_INFO_AND_ABOVE)
+#if (defined MDN_LOGGER_SET_LEVEL_DEBUG) || (defined MDN_LOGGER_SET_LEVEL_INFO)
 # define MDN_LOGGER_LOG_INFO(...) MDN_LOGGER_LOG_COMMON(MDN_LOGGER_LOGGING_LEVEL_INFO, __VA_ARGS__)
 #else
 # define MDN_LOGGER_LOG_INFO(...)
 #endif
 
-#if (defined LOGGING_DEBUG_AND_ABOVE) || (defined LOGGING_INFO_AND_ABOVE) || (defined LOGGING_WARNING_AND_ABOVE)
+#if (defined MDN_LOGGER_SET_LEVEL_DEBUG) || (defined MDN_LOGGER_SET_LEVEL_INFO) || (defined MDN_LOGGER_SET_LEVEL_WARNING)
 # define MDN_LOGGER_LOG_WARNING(...) MDN_LOGGER_LOG_COMMON(MDN_LOGGER_LOGGING_LEVEL_WARNING, __VA_ARGS__)
 #else
 # define MDN_LOGGER_LOG_WARNING(...)
 #endif
 
-#if (defined LOGGING_DEBUG_AND_ABOVE) || (defined LOGGING_INFO_AND_ABOVE) || (defined LOGGING_WARNING_AND_ABOVE) || (defined LOGGING_ERROR_AND_ABOVE)
+#if (defined MDN_LOGGER_SET_LEVEL_DEBUG) || (defined MDN_LOGGER_SET_LEVEL_INFO) || (defined MDN_LOGGER_SET_LEVEL_WARNING) || (defined MDN_LOGGER_SET_LEVEL_ERROR)
 # define MDN_LOGGER_LOG_ERROR(...) MDN_LOGGER_LOG_COMMON(MDN_LOGGER_LOGGING_LEVEL_ERROR, __VA_ARGS__)
 #else
 # define MDN_LOGGER_LOG_ERROR(...)
 #endif
 
-#if (defined LOGGING_DEBUG_AND_ABOVE) || (defined LOGGING_INFO_AND_ABOVE) || (defined LOGGING_WARNING_AND_ABOVE) || (defined LOGGING_ERROR_AND_ABOVE) || (defined LOGGING_CRITICAL_AND_ABOVE)
+#if (defined MDN_LOGGER_SET_LEVEL_DEBUG) || (defined MDN_LOGGER_SET_LEVEL_INFO) || (defined MDN_LOGGER_SET_LEVEL_WARNING) || (defined MDN_LOGGER_SET_LEVEL_ERROR) || (defined MDN_LOGGER_SET_LEVEL_CRITICAL)
 # define MDN_LOGGER_LOG_CRITICAL(...) MDN_LOGGER_LOG_COMMON(MDN_LOGGER_LOGGING_LEVEL_CRITICAL, __VA_ARGS__)
 #else
 # define MDN_LOGGER_LOG_CRITICAL(...)
