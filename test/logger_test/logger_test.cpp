@@ -1,5 +1,5 @@
 // NO_LINT_BEGIN
-#define LOGGING_DEBUG_AND_ABOVE
+#define MDN_LOGGER_SET_LEVEL_DEBUG
 #include "logger.h"  // Has to be included before "mock_wrapper.h"
 // NO_LINT_END
 
@@ -188,6 +188,14 @@ protected:
         OutputFileInfo{.streamConfig = mdn_Logger_StreamConfig_t{nullptr, MDN_LOGGER_LOGGING_LEVEL_DEBUG, MDN_LOGGER_LOGGING_FORMAT_FILE},  .fileToRead = nullptr, .suffix = "logger2",           .path = ""},
         OutputFileInfo{.streamConfig = mdn_Logger_StreamConfig_t{stdout, MDN_LOGGER_LOGGING_LEVEL_DEBUG, MDN_LOGGER_LOGGING_FORMAT_SCREEN}, .fileToRead = nullptr, .suffix = "stdoutRedirection", .path = ""},
         OutputFileInfo{.streamConfig = mdn_Logger_StreamConfig_t{stderr, MDN_LOGGER_LOGGING_LEVEL_DEBUG, MDN_LOGGER_LOGGING_FORMAT_SCREEN}, .fileToRead = nullptr, .suffix = "stderrRedirection", .path = ""},
+    };
+
+    static inline const std::vector<LogLine> defaultLogLines = {
+        LogLine{.loggingLevel = MDN_LOGGER_LOGGING_LEVEL_DEBUG,    .message = "Grey debug message"     },
+        LogLine{.loggingLevel = MDN_LOGGER_LOGGING_LEVEL_INFO,     .message = "White info message"     },
+        LogLine{.loggingLevel = MDN_LOGGER_LOGGING_LEVEL_WARNING,  .message = "Yellow warning message" },
+        LogLine{.loggingLevel = MDN_LOGGER_LOGGING_LEVEL_ERROR,    .message = "Red error message"      },
+        LogLine{.loggingLevel = MDN_LOGGER_LOGGING_LEVEL_CRITICAL, .message = "Purple critical message"},
     };
 
     void logDebug(const std::string &message) {
@@ -388,14 +396,16 @@ protected:
     }
 
     void verifyLogLinesForLogFile(BinaryFileReader &binaryFileReader, const OutputFileInfo &outputFileRef, const std::vector<LogLine> &logLines) {
+        std::string actualLogLine;
         for (const auto &expectedLogLine : logLines) {
             if (expectedLogLine.loggingLevel < outputFileRef.streamConfig.loggingLevel) {
                 continue;
             }
-            std::string actualLogLine;
             ASSERT_EQ(binaryFileReader.getLine(actualLogLine), true) << "Failed to read line from file: " << outputFileRef.path;
             ASSERT_NO_FATAL_FAILURE(verifyLogLine(actualLogLine, outputFileRef.streamConfig.loggingFormat, expectedLogLine));
         }
+        ASSERT_EQ(binaryFileReader.getLine(actualLogLine), false) << "Unexpected line in file: " << outputFileRef.path << "\n"
+                                                                  << actualLogLine;
     }
 
     void verifyLogFiles(const std::vector<LogLine> &logLines, const std::vector<OutputFiles> &outputFiles) {
@@ -422,22 +432,12 @@ public:
             .loggingFormat = MDN_LOGGER_LOGGING_FORMAT_SCREEN};
 
         loggingFormatToRegexMap.resize(MDN_LOGGER_LOGGING_FORMAT_COUNT);
-        loggingFormatToRegexMap[MDN_LOGGER_LOGGING_FORMAT_FILE]   = R"(^(\d{4}-\d{2}-\d{2}) (\d{2}:\d{2}:\d{2}\.\d{3}) (\w+) +([\w\.]+) \| ([[:print:]\s]+)$)";
         loggingFormatToRegexMap[MDN_LOGGER_LOGGING_FORMAT_SCREEN] = R"(^(\x1B\[\d+m)(\d{2}:\d{2}:\d{2}\.\d{3}) ([\w\.]+) \| ([[:print:]\s]+)(\x1B\[\d+m)$)";
+        loggingFormatToRegexMap[MDN_LOGGER_LOGGING_FORMAT_FILE]   = R"(^(\d{4}-\d{2}-\d{2}) (\d{2}:\d{2}:\d{2}\.\d{3}) (\w+) +([\w\.]+) +\| ([[:print:]\s]+)$)";
 
         loggingFormatToIndicesMap.resize(MDN_LOGGER_LOGGING_FORMAT_COUNT);
 
         // NOLINTBEGIN(readability-magic-numbers): indices are explicit positions in the regex capture groups
-        // FILE format: (date) (time) (level) (function) | (message)
-        loggingFormatToIndicesMap[MDN_LOGGER_LOGGING_FORMAT_FILE] = {
-            .dateIndex        = 1,
-            .timeIndex        = 2,
-            .logLevelIndex    = 3,
-            .functionIndex    = 4,
-            .messageIndex     = 5,
-            .colorPrefixIndex = std::nullopt,
-            .colorSuffixIndex = std::nullopt};
-
         // SCREEN format: (color_prefix) (time) (function) | (message) (color_suffix)
         loggingFormatToIndicesMap[MDN_LOGGER_LOGGING_FORMAT_SCREEN] = {
             .dateIndex        = std::nullopt,
@@ -447,6 +447,16 @@ public:
             .messageIndex     = 4,
             .colorPrefixIndex = 1,
             .colorSuffixIndex = 5};
+
+        // FILE format: (date) (time) (level) (function) | (message)
+        loggingFormatToIndicesMap[MDN_LOGGER_LOGGING_FORMAT_FILE] = {
+            .dateIndex        = 1,
+            .timeIndex        = 2,
+            .logLevelIndex    = 3,
+            .functionIndex    = 4,
+            .messageIndex     = 5,
+            .colorPrefixIndex = std::nullopt,
+            .colorSuffixIndex = std::nullopt};
         // NOLINTEND(readability-magic-numbers)
     }
 };
@@ -462,24 +472,170 @@ TEST_F(LoggerTest, AddOutputStream) {
     ASSERT_EQ(mdn_Logger_deinit(), MDN_STATUS_SUCCESS);
 }
 
-TEST_F(LoggerTest, PrintToFile) {
-    const std::vector<OutputFiles> outputFiles = {OutputFiles::LOGGER_OUTPUT_1, OutputFiles::STDOUT_REDIRECTION};
-    const std::vector<LogLine>     logLines    = {
-        LogLine{.loggingLevel = MDN_LOGGER_LOGGING_LEVEL_DEBUG,    .message = "Grey debug message"     },
-        LogLine{.loggingLevel = MDN_LOGGER_LOGGING_LEVEL_INFO,     .message = "White info message"     },
-        LogLine{.loggingLevel = MDN_LOGGER_LOGGING_LEVEL_WARNING,  .message = "Yellow warning message" },
-        LogLine{.loggingLevel = MDN_LOGGER_LOGGING_LEVEL_ERROR,    .message = "Red error message"      },
-        LogLine{.loggingLevel = MDN_LOGGER_LOGGING_LEVEL_CRITICAL, .message = "Purple critical message"},
+TEST_F(LoggerTest, LogToFile) {
+    const std::vector<OutputFiles> outputFiles = {
+        OutputFiles::LOGGER_OUTPUT_1,
     };
 
     ASSERT_NO_FATAL_FAILURE(openTestOutputFiles(outputFiles));
     ASSERT_EQ(mdn_Logger_init(), MDN_STATUS_SUCCESS);
     ASSERT_NO_FATAL_FAILURE(addOutputStreams(outputFiles));
-    ASSERT_NO_FATAL_FAILURE(printAllToLogs(logLines, outputFiles));
+    ASSERT_NO_FATAL_FAILURE(printAllToLogs(defaultLogLines, outputFiles));
     ASSERT_EQ(mdn_Logger_deinit(), MDN_STATUS_SUCCESS);
     ASSERT_NO_FATAL_FAILURE(closeTestOutputFiles(outputFiles));
 
-    ASSERT_NO_FATAL_FAILURE(verifyLogFiles(logLines, outputFiles));
+    ASSERT_NO_FATAL_FAILURE(verifyLogFiles(defaultLogLines, outputFiles));
+}
+
+TEST_F(LoggerTest, LogToMultipleFiles) {
+    const std::vector<OutputFiles> outputFiles = {
+        OutputFiles::LOGGER_OUTPUT_1,
+        OutputFiles::LOGGER_OUTPUT_2,
+    };
+
+    ASSERT_NO_FATAL_FAILURE(openTestOutputFiles(outputFiles));
+    ASSERT_EQ(mdn_Logger_init(), MDN_STATUS_SUCCESS);
+    ASSERT_NO_FATAL_FAILURE(addOutputStreams(outputFiles));
+    ASSERT_NO_FATAL_FAILURE(printAllToLogs(defaultLogLines, outputFiles));
+    ASSERT_EQ(mdn_Logger_deinit(), MDN_STATUS_SUCCESS);
+    ASSERT_NO_FATAL_FAILURE(closeTestOutputFiles(outputFiles));
+
+    ASSERT_NO_FATAL_FAILURE(verifyLogFiles(defaultLogLines, outputFiles));
+}
+
+TEST_F(LoggerTest, LogToStdout) {
+    const std::vector<OutputFiles> outputFiles = {
+        OutputFiles::STDOUT_REDIRECTION,
+    };
+
+    ASSERT_NO_FATAL_FAILURE(openTestOutputFiles(outputFiles));
+    ASSERT_EQ(mdn_Logger_init(), MDN_STATUS_SUCCESS);
+    ASSERT_NO_FATAL_FAILURE(addOutputStreams(outputFiles));
+    ASSERT_NO_FATAL_FAILURE(printAllToLogs(defaultLogLines, outputFiles));
+    ASSERT_EQ(mdn_Logger_deinit(), MDN_STATUS_SUCCESS);
+    ASSERT_NO_FATAL_FAILURE(closeTestOutputFiles(outputFiles));
+
+    ASSERT_NO_FATAL_FAILURE(verifyLogFiles(defaultLogLines, outputFiles));
+}
+
+TEST_F(LoggerTest, LogToStderr) {
+    const std::vector<OutputFiles> outputFiles = {
+        OutputFiles::STDERR_REDIRECTION,
+    };
+
+    ASSERT_NO_FATAL_FAILURE(openTestOutputFiles(outputFiles));
+    ASSERT_EQ(mdn_Logger_init(), MDN_STATUS_SUCCESS);
+    ASSERT_NO_FATAL_FAILURE(addOutputStreams(outputFiles));
+    ASSERT_NO_FATAL_FAILURE(printAllToLogs(defaultLogLines, outputFiles));
+    ASSERT_EQ(mdn_Logger_deinit(), MDN_STATUS_SUCCESS);
+    ASSERT_NO_FATAL_FAILURE(closeTestOutputFiles(outputFiles));
+
+    ASSERT_NO_FATAL_FAILURE(verifyLogFiles(defaultLogLines, outputFiles));
+}
+
+TEST_F(LoggerTest, LogToAllOutputs) {
+    const std::vector<OutputFiles> outputFiles = {
+        OutputFiles::LOGGER_OUTPUT_1,
+        OutputFiles::LOGGER_OUTPUT_2,
+        OutputFiles::STDOUT_REDIRECTION,
+        OutputFiles::STDERR_REDIRECTION,
+    };
+
+    ASSERT_NO_FATAL_FAILURE(openTestOutputFiles(outputFiles));
+    ASSERT_EQ(mdn_Logger_init(), MDN_STATUS_SUCCESS);
+    ASSERT_NO_FATAL_FAILURE(addOutputStreams(outputFiles));
+    ASSERT_NO_FATAL_FAILURE(printAllToLogs(defaultLogLines, outputFiles));
+    ASSERT_EQ(mdn_Logger_deinit(), MDN_STATUS_SUCCESS);
+    ASSERT_NO_FATAL_FAILURE(closeTestOutputFiles(outputFiles));
+
+    ASSERT_NO_FATAL_FAILURE(verifyLogFiles(defaultLogLines, outputFiles));
+}
+
+TEST_F(LoggerTest, LogLevelInfo) {
+    const std::vector<OutputFiles> outputFiles = {
+        OutputFiles::LOGGER_OUTPUT_1,
+    };
+
+    outputFilesInfo[static_cast<std::size_t>(outputFiles[0])].streamConfig.loggingLevel = MDN_LOGGER_LOGGING_LEVEL_INFO;
+
+    ASSERT_NO_FATAL_FAILURE(openTestOutputFiles(outputFiles));
+    ASSERT_EQ(mdn_Logger_init(), MDN_STATUS_SUCCESS);
+    ASSERT_NO_FATAL_FAILURE(addOutputStreams(outputFiles));
+    ASSERT_NO_FATAL_FAILURE(printAllToLogs(defaultLogLines, outputFiles));
+    ASSERT_EQ(mdn_Logger_deinit(), MDN_STATUS_SUCCESS);
+    ASSERT_NO_FATAL_FAILURE(closeTestOutputFiles(outputFiles));
+
+    ASSERT_NO_FATAL_FAILURE(verifyLogFiles(defaultLogLines, outputFiles));
+}
+
+TEST_F(LoggerTest, LogLevelWarning) {
+    const std::vector<OutputFiles> outputFiles = {
+        OutputFiles::LOGGER_OUTPUT_1,
+    };
+
+    outputFilesInfo[static_cast<std::size_t>(outputFiles[0])].streamConfig.loggingLevel = MDN_LOGGER_LOGGING_LEVEL_WARNING;
+
+    ASSERT_NO_FATAL_FAILURE(openTestOutputFiles(outputFiles));
+    ASSERT_EQ(mdn_Logger_init(), MDN_STATUS_SUCCESS);
+    ASSERT_NO_FATAL_FAILURE(addOutputStreams(outputFiles));
+    ASSERT_NO_FATAL_FAILURE(printAllToLogs(defaultLogLines, outputFiles));
+    ASSERT_EQ(mdn_Logger_deinit(), MDN_STATUS_SUCCESS);
+    ASSERT_NO_FATAL_FAILURE(closeTestOutputFiles(outputFiles));
+
+    ASSERT_NO_FATAL_FAILURE(verifyLogFiles(defaultLogLines, outputFiles));
+}
+
+TEST_F(LoggerTest, LogLevelError) {
+    const std::vector<OutputFiles> outputFiles = {
+        OutputFiles::LOGGER_OUTPUT_1,
+    };
+
+    outputFilesInfo[static_cast<std::size_t>(outputFiles[0])].streamConfig.loggingLevel = MDN_LOGGER_LOGGING_LEVEL_ERROR;
+
+    ASSERT_NO_FATAL_FAILURE(openTestOutputFiles(outputFiles));
+    ASSERT_EQ(mdn_Logger_init(), MDN_STATUS_SUCCESS);
+    ASSERT_NO_FATAL_FAILURE(addOutputStreams(outputFiles));
+    ASSERT_NO_FATAL_FAILURE(printAllToLogs(defaultLogLines, outputFiles));
+    ASSERT_EQ(mdn_Logger_deinit(), MDN_STATUS_SUCCESS);
+    ASSERT_NO_FATAL_FAILURE(closeTestOutputFiles(outputFiles));
+
+    ASSERT_NO_FATAL_FAILURE(verifyLogFiles(defaultLogLines, outputFiles));
+}
+
+TEST_F(LoggerTest, LogLevelCritical) {
+    const std::vector<OutputFiles> outputFiles = {
+        OutputFiles::LOGGER_OUTPUT_1,
+    };
+
+    outputFilesInfo[static_cast<std::size_t>(outputFiles[0])].streamConfig.loggingLevel = MDN_LOGGER_LOGGING_LEVEL_CRITICAL;
+
+    ASSERT_NO_FATAL_FAILURE(openTestOutputFiles(outputFiles));
+    ASSERT_EQ(mdn_Logger_init(), MDN_STATUS_SUCCESS);
+    ASSERT_NO_FATAL_FAILURE(addOutputStreams(outputFiles));
+    ASSERT_NO_FATAL_FAILURE(printAllToLogs(defaultLogLines, outputFiles));
+    ASSERT_EQ(mdn_Logger_deinit(), MDN_STATUS_SUCCESS);
+    ASSERT_NO_FATAL_FAILURE(closeTestOutputFiles(outputFiles));
+
+    ASSERT_NO_FATAL_FAILURE(verifyLogFiles(defaultLogLines, outputFiles));
+}
+
+TEST_F(LoggerTest, FileDebugScreenWarning) {
+    const std::vector<OutputFiles> outputFiles = {
+        OutputFiles::LOGGER_OUTPUT_1,
+        OutputFiles::STDOUT_REDIRECTION,
+    };
+
+    outputFilesInfo[static_cast<std::size_t>(outputFiles[0])].streamConfig.loggingLevel = MDN_LOGGER_LOGGING_LEVEL_DEBUG;
+    outputFilesInfo[static_cast<std::size_t>(outputFiles[1])].streamConfig.loggingLevel = MDN_LOGGER_LOGGING_LEVEL_WARNING;
+
+    ASSERT_NO_FATAL_FAILURE(openTestOutputFiles(outputFiles));
+    ASSERT_EQ(mdn_Logger_init(), MDN_STATUS_SUCCESS);
+    ASSERT_NO_FATAL_FAILURE(addOutputStreams(outputFiles));
+    ASSERT_NO_FATAL_FAILURE(printAllToLogs(defaultLogLines, outputFiles));
+    ASSERT_EQ(mdn_Logger_deinit(), MDN_STATUS_SUCCESS);
+    ASSERT_NO_FATAL_FAILURE(closeTestOutputFiles(outputFiles));
+
+    ASSERT_NO_FATAL_FAILURE(verifyLogFiles(defaultLogLines, outputFiles));
 }
 
 #ifdef MDN_LOGGER_SAFE_MODE
@@ -512,7 +668,12 @@ public:
 };
 
 TEST_F(LoggerSafeModeTest, InvalidArguments) {
+    const std::vector<OutputFiles> outputFiles = {OutputFiles::LOGGER_OUTPUT_1};
+
+    ASSERT_NO_FATAL_FAILURE(openTestOutputFiles(outputFiles));
+
     ASSERT_EQ(mdn_Logger_addOutputStream(streamConfigDefault), MDN_STATUS_ERROR_LIBRARY_NOT_INITIALIZED);
+    MDN_LOGGER_LOG_DEBUG("Test message (should not be logged, library not initialized)");  // NOLINT(hicpp-vararg)
 
     ASSERT_EQ(mdn_Logger_init(), MDN_STATUS_SUCCESS);
     ASSERT_EQ(mdn_Logger_init(), MDN_STATUS_ERROR_LIBRARY_ALREADY_INITIALIZED);
@@ -522,9 +683,20 @@ TEST_F(LoggerSafeModeTest, InvalidArguments) {
     ASSERT_EQ(mdn_Logger_addOutputStream(streamConfigLoggingLevelTooSmall), MDN_STATUS_ERROR_BAD_ARGUMENT);
     ASSERT_EQ(mdn_Logger_addOutputStream(streamConfigLoggingFormatTooBig), MDN_STATUS_ERROR_BAD_ARGUMENT);
     ASSERT_EQ(mdn_Logger_addOutputStream(streamConfigLoggingFormatTooSmall), MDN_STATUS_ERROR_BAD_ARGUMENT);
+    ASSERT_NO_FATAL_FAILURE(addOutputStreams(outputFiles));
+    ASSERT_NO_FATAL_FAILURE(printAllToLogs(defaultLogLines, outputFiles));
+
+    mdn_Logger_log(static_cast<mdn_Logger_loggingLevel_t>(-1), __FILE__, __LINE__, MDN_LOGGER_FUNC_NAME, "Test message (should not be logged, logging format too small)");  // NOLINT(clang-analyzer-optin.core.EnumCastOutOfRange,hicpp-vararg)
+    mdn_Logger_log(MDN_LOGGER_LOGGING_LEVEL_COUNT, __FILE__, __LINE__, MDN_LOGGER_FUNC_NAME, "Test message (should not be logged, logging format too big)");                // NOLINT(hicpp-vararg)
+    mdn_Logger_log(MDN_LOGGER_LOGGING_LEVEL_DEBUG, nullptr, __LINE__, MDN_LOGGER_FUNC_NAME, "Test message (should not be logged, file is null)");                           // NOLINT(hicpp-vararg)
+    mdn_Logger_log(MDN_LOGGER_LOGGING_LEVEL_DEBUG, __FILE__, -1, MDN_LOGGER_FUNC_NAME, "Test message (should not be logged, line is negative)");                            // NOLINT(hicpp-vararg)
+    mdn_Logger_log(MDN_LOGGER_LOGGING_LEVEL_DEBUG, __FILE__, __LINE__, nullptr, "Test message (should not be logged, function is null)");                                   // NOLINT(hicpp-vararg)
 
     ASSERT_EQ(mdn_Logger_deinit(), MDN_STATUS_SUCCESS);
     ASSERT_EQ(mdn_Logger_deinit(), MDN_STATUS_ERROR_LIBRARY_NOT_INITIALIZED);
+
+    ASSERT_NO_FATAL_FAILURE(closeTestOutputFiles(outputFiles));
+    ASSERT_NO_FATAL_FAILURE(verifyLogFiles(defaultLogLines, outputFiles));
 }
 
 #endif  // MDN_LOGGER_SAFE_MODE
