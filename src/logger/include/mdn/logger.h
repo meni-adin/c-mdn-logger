@@ -32,7 +32,7 @@ typedef struct mdn_Logger_StreamConfig_t_ {
     mdn_Logger_loggingFormat_t loggingFormat;
 } mdn_Logger_StreamConfig_t;
 
-#if (!defined MDN_LOGGER_SET_LEVEL_DEBUG) && (!defined MDN_LOGGER_SET_LEVEL_INFO) && (!defined MDN_LOGGER_SET_LEVEL_WARNING) && (!defined MDN_LOGGER_SET_LEVEL_ERROR) && (!defined MDN_LOGGER_SET_LEVEL_CRITICAL)
+#if (!defined MDN_LOGGER_SET_LEVEL_DEBUG) && (!defined MDN_LOGGER_SET_LEVEL_INFO) && (!defined MDN_LOGGER_SET_LEVEL_WARNING) && (!defined MDN_LOGGER_SET_LEVEL_ERROR) && (!defined MDN_LOGGER_SET_LEVEL_CRITICAL) && (!defined MDN_LOGGER_SET_LEVEL_NONE)
 # error Requested minimal logging level must be defined
 #endif
 

@@ -1,4 +1,4 @@
-#define MDN_LOGGER_SET_LEVEL_DEBUG
+#define MDN_LOGGER_SET_LEVEL_NONE
 #include "mdn/logger.h"
 
 #include <stdarg.h>
