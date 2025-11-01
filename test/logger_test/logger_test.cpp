@@ -1,6 +1,6 @@
 // NO_LINT_BEGIN
 #define MDN_LOGGER_SET_LEVEL_DEBUG
-#include "logger.h"  // Has to be included before "mock_wrapper.h"
+#include "mdn/logger.h"  // Has to be included before "mock_wrapper.h"
 // NO_LINT_END
 
 #include <array>
